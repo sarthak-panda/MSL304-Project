@@ -89,3 +89,12 @@ def test_csv_extra_columns_and_bom_are_accepted():
     assert errors == []
     assert list(frame["passenger_id"]) == ["B", "A"]
     assert list(frame["arrival_time_min"]) == [2.0, 1.0]
+
+
+def test_csv_line_endings_quotes_and_blank_header_lines():
+    for text in (b"passenger_id,arrival_time_min,service_time_min\rA,1,2\rB,2,3\r",
+                 b'passenger_id, arrival_time_min, service_time_min\n"A, x", "1", "2"\nB,2,3\n',
+                 b",,\npassenger_id,arrival_time_min,service_time_min\nA,1,2\nB,2,3\n"):
+        frame, errors = parse_passenger_csv(text)
+        assert errors == [], (text, errors)
+        assert len(frame) == 2

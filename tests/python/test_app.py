@@ -51,3 +51,11 @@ def test_csv_mode_workflow(client):
     click(at, "Optimize staffing")
     assert not at.error, [e.value for e in at.error]
     assert at.session_state["opt_result"]["run_info"]["replications"] == 1
+
+
+def test_sample_csv_loads_in_csv_mode(client):
+    at = AppTest.from_file(APP, default_timeout=90).run()
+    page(at, "Scenario Builder")
+    at.radio[0].set_value("csv").run()
+    click(at, "Use sample CSV (synthetic data)")
+    assert len(at.session_state["csv_frame"]) == 60

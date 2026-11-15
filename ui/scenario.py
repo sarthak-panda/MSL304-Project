@@ -108,7 +108,12 @@ def parse_passenger_csv(data: bytes) -> tuple[pd.DataFrame | None, list[str]]:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
         return None, [f"Could not read CSV: {exc}"]
-    rows = [r for r in csv.reader(io.StringIO(text)) if any(field.strip() for field in r)]
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    try:
+        parsed = list(csv.reader(io.StringIO(text), skipinitialspace=True))
+    except csv.Error as exc:
+        return None, [f"Could not read CSV: {exc}"]
+    rows = [r for r in parsed if any(field.strip() for field in r)]
     if not rows:
         return None, ["Could not read CSV: the file is empty."]
     header = [c.strip() for c in rows[0]]
@@ -119,12 +124,7 @@ def parse_passenger_csv(data: bytes) -> tuple[pd.DataFrame | None, list[str]]:
     if bad_width:
         listed = ", ".join(str(n) for n in bad_width[:5])
         return None, [f"Row(s) {listed}: expected {len(header)} fields to match the header."]
-    try:
-        df = pd.read_csv(io.StringIO(text), dtype=str, keep_default_na=False, skipinitialspace=True,
-                         index_col=False, skip_blank_lines=True)
-    except (pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
-        return None, [f"Could not read CSV: {exc}"]
-    df.columns = header
+    df = pd.DataFrame(rows[1:], columns=header, dtype=str)
     missing = [c for c in CSV_COLUMNS if c not in df.columns]
     if missing:
         return None, [f"Missing required column(s): {', '.join(missing)}. Expected {', '.join(CSV_COLUMNS)}."]

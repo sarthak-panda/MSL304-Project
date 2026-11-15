@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -31,6 +30,16 @@ def current_passengers() -> list[dict] | None:
     if frame is None or st.session_state.csv_errors:
         return None
     return passengers_from_frame(frame)
+
+
+def on_csv_upload() -> None:
+    upload = st.session_state.csv_upload
+    if upload is None:
+        return
+    frame, errors = parse_passenger_csv(upload.getvalue())
+    st.session_state.csv_frame, st.session_state.csv_errors = frame, errors
+    st.session_state.csv_name = upload.name
+    st.session_state.is_sample = False
 
 
 def scenario_ready() -> tuple[dict, list[dict] | None, list[str]]:
@@ -169,15 +178,7 @@ def page_builder() -> None:
         st.caption("Required columns: `passenger_id, arrival_time_min, service_time_min`. Rows may be in any order. "
                    "A fixed dataset is simulated once, so replication controls do not apply.")
         c1, c2 = st.columns([2, 1])
-        upload = c1.file_uploader("Upload CSV", type=["csv"])
-        if upload is not None:
-            data = upload.getvalue()
-            upload_key = (upload.name, hashlib.sha256(data).hexdigest())
-            if upload_key != st.session_state.get("csv_upload_key"):
-                frame, errors = parse_passenger_csv(data)
-                st.session_state.csv_frame, st.session_state.csv_errors = frame, errors
-                st.session_state.csv_name, st.session_state.csv_upload_key = upload.name, upload_key
-                st.session_state.is_sample = False
+        c1.file_uploader("Upload CSV", type=["csv"], key="csv_upload", on_change=on_csv_upload)
         if c2.button("Use sample CSV (synthetic data)", width="stretch"):
             frame, errors = parse_passenger_csv(SAMPLE_CSV.read_bytes())
             st.session_state.csv_frame, st.session_state.csv_errors = frame, errors
