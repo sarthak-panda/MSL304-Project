@@ -51,44 +51,46 @@ def illustrative_badge() -> None:
         st.caption(":orange-badge[Illustrative sample data] Parameters are example values, not measured airport data.")
 
 
-def run_simulation(counters: int) -> None:
+def run_simulation(counters: int) -> bool:
     scenario, passengers, errors = scenario_ready()
     if errors:
         for e in errors:
             st.error(e)
-        return
+        return False
     try:
         with st.spinner(f"Running C++ simulation with {counters} counter(s)..."):
             result = client.simulate(build_document(scenario, passengers), counters)
     except FlowSimError as err:
         show_engine_error(err)
-        return
+        return False
     st.session_state.sim_result = result
     st.session_state.sim_scenario = scenario
     m = result["metrics"]
     ui.add_history("simulation", scenario, {"counters": counters, "total_cost": round(m["total_objective_cost"], 2),
                                             "mean_wait_min": round(m["mean_wait_min"], 3)})
+    return True
 
 
-def run_optimization(scenario_override: dict | None = None) -> None:
+def run_optimization(scenario_override: dict | None = None) -> bool:
     if scenario_override is not None:
         st.session_state.scenario = scenario_override
     scenario, passengers, errors = scenario_ready()
     if errors:
         for e in errors:
             st.error(e)
-        return
+        return False
     try:
         with st.spinner("Evaluating every staffing level in the C++ engine..."):
             result = client.optimize(build_document(scenario, passengers))
     except FlowSimError as err:
         show_engine_error(err)
-        return
+        return False
     st.session_state.opt_result = result
     st.session_state.opt_scenario = scenario
     ui.add_history("optimization", scenario, {"counters": result["best_counter_count"],
                                               "total_cost": round(result["best_objective_cost"], 2),
                                               "mean_wait_min": round(result["recommended_simulation"]["metrics"]["mean_wait_min"], 3)})
+    return True
 
 
 # ---------------------------------------------------------------- pages
@@ -117,11 +119,11 @@ def page_overview() -> None:
             ui.load_sample()
             st.rerun()
         if b2.button("Run baseline simulation", width="stretch", type="primary"):
-            run_simulation(int(s.get("current_counters") or s["min_counters"]))
-            st.rerun()
+            if run_simulation(int(s.get("current_counters") or s["min_counters"])):
+                st.rerun()
         if b3.button("Optimize staffing", width="stretch", type="primary", key="overview_opt"):
-            run_optimization()
-            st.rerun()
+            if run_optimization():
+                st.rerun()
     with right:
         st.subheader("Scenario")
         rows = {"Name": s["name"], "Input": s["input_mode"]}
@@ -411,7 +413,7 @@ def page_export() -> None:
     st.subheader("Rerun")
     c = st.columns([1, 1, 2])
     if s["input_mode"] == "synthetic":
-        new_seed = c[0].number_input("Seed for rerun", 0, 2**53 - 1, int(s["seed"]) + 1)
+        new_seed = c[0].number_input("Seed for rerun", 0, 2**53 - 1, (int(s["seed"]) + 1) % 2**53)
         if c[1].button("Optimize with this seed", type="primary"):
             run_optimization({**s, "seed": int(new_seed)})
     else:
