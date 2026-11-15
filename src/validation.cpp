@@ -94,7 +94,8 @@ void validate_scenario(const Scenario& s) {
             "max_threads must be between 1 and " + std::to_string(limits::kMaxThreads));
 
     const std::size_t counters = s.max_counters - s.min_counters + 1;
-    require(s.replications * counters <= limits::kMaxTasks, "scenario.replications",
+    const std::size_t runs_per_counter = s.input_mode == InputMode::Csv ? 1 : s.replications;
+    require(runs_per_counter * counters <= limits::kMaxTasks, "scenario.replications",
             "replications x counter range exceeds the limit of " + std::to_string(limits::kMaxTasks) + " runs");
 }
 

@@ -161,3 +161,14 @@ TEST_CASE("csv: malformed files are rejected") {
     CHECK(rejects("passenger_id,arrival_time_min,service_time_min\n,1,2\n"));
     CHECK(!rejects("passenger_id,arrival_time_min,service_time_min\n"));  // header only: zero customers
 }
+
+TEST_CASE("validation: csv-mode task limit ignores unused replications") {
+    json d = csv_doc();
+    d["scenario"]["max_counters"] = 100;
+    d["scenario"]["replications"] = 1000;
+    CHECK_EQ(field_of(d), std::string("<accepted>"));
+    json synthetic = base_doc();
+    synthetic["scenario"]["max_counters"] = 100;
+    synthetic["scenario"]["replications"] = 1000;
+    CHECK_EQ(field_of(synthetic), std::string("scenario.replications"));
+}
