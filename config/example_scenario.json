@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "scenario": {
+    "name": "Airport security morning peak (illustrative)",
+    "input_mode": "synthetic",
+    "arrival_window_minutes": 240,
+    "arrival_rate_per_hour": 48.0,
+    "mean_service_time_minutes": 5.5,
+    "service_time_distribution": "exponential",
+    "min_counters": 1,
+    "max_counters": 8,
+    "current_counters": 4,
+    "counter_cost_per_hour": 250.0,
+    "waiting_cost_per_passenger_hour": 35.0,
+    "sla_wait_minutes": 10.0,
+    "sla_penalty_per_passenger": 20.0,
+    "replications": 10,
+    "seed": 42,
+    "parallel": true,
+    "max_threads": 4,
+    "record_trace": true
+  }
+}
