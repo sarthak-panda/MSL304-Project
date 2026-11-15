@@ -110,7 +110,7 @@ def parse_passenger_csv(data: bytes) -> tuple[pd.DataFrame | None, list[str]]:
         return None, [f"Could not read CSV: {exc}"]
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     try:
-        parsed = list(csv.reader(io.StringIO(text), skipinitialspace=True))
+        parsed = list(csv.reader(io.StringIO(text), skipinitialspace=True, strict=True))
     except csv.Error as exc:
         return None, [f"Could not read CSV: {exc}"]
     rows = [r for r in parsed if any(field.strip() for field in r)]

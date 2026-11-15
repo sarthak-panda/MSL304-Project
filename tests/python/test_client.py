@@ -98,3 +98,8 @@ def test_csv_line_endings_quotes_and_blank_header_lines():
         frame, errors = parse_passenger_csv(text)
         assert errors == [], (text, errors)
         assert len(frame) == 2
+
+
+def test_csv_unclosed_quote_rejected():
+    frame, errors = parse_passenger_csv(b'passenger_id,arrival_time_min,service_time_min\nA,1,"2')
+    assert frame is None and errors and "Could not read CSV" in errors[0]
