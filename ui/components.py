@@ -48,6 +48,19 @@ def load_sample() -> None:
     st.session_state.form_version += 1  # forces the builder form to show the new values
 
 
+def md_escape(text: str) -> str:
+    """Escapes '$' so Streamlit markdown does not treat currency amounts as LaTeX."""
+    return text.replace("$", "\\$")
+
+
+def inject_css() -> None:
+    st.html("""<style>
+    [data-testid="stMetricValue"] { font-size: clamp(1.15rem, 1.9vw, 2.1rem); }
+    [data-testid="stMetricValue"] > div, [data-testid="stMetricLabel"] p {
+        white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+    </style>""")
+
+
 def money(value: float | None) -> str:
     if value is None:
         return "n/a"
@@ -82,7 +95,7 @@ def add_history(kind: str, scenario: dict[str, Any], summary: dict[str, Any]) ->
         "run": kind,
         "scenario": scenario["name"],
         "mode": scenario["input_mode"],
-        "seed": scenario.get("seed") if scenario["input_mode"] == "synthetic" else "fixed CSV",
+        "seed": str(scenario.get("seed")) if scenario["input_mode"] == "synthetic" else "fixed CSV",
         "replications": scenario.get("replications") if scenario["input_mode"] == "synthetic" else 1,
         **summary,
     })

@@ -21,6 +21,7 @@ SAMPLE_CSV = REPO_ROOT / "data" / "sample_passengers.csv"
 PAGES = ["Overview", "Scenario Builder", "Simulation", "Optimize Staffing", "Experiments & Export"]
 
 st.set_page_config(page_title="FlowSim", layout="wide", initial_sidebar_state="expanded")
+ui.inject_css()
 ui.init_state()
 client = FlowSimClient()
 
@@ -188,7 +189,11 @@ def page_builder() -> None:
                 st.error(e)
         frame = st.session_state.csv_frame
         if frame is not None:
-            st.success(f"{len(frame):,} rows loaded from {st.session_state.csv_name}.")
+            if st.session_state.csv_errors:
+                st.warning(f"{len(frame):,} rows read from {st.session_state.csv_name}, but the file cannot be used "
+                           "until the errors above are fixed.")
+            else:
+                st.success(f"{len(frame):,} rows loaded from {st.session_state.csv_name}.")
             st.dataframe(frame.head(10), hide_index=True, width="stretch")
 
     with st.form(f"scenario_form_{st.session_state.form_version}"):
@@ -266,8 +271,8 @@ def page_simulation() -> None:
                + f", {sim['events_processed']:,} events processed.")
     ui.kpi_row(sim["metrics"])
     m = sim["metrics"]
-    st.caption(f"Cost breakdown: staffing {ui.money(m['staffing_cost'])} + waiting {ui.money(m['waiting_cost'])} "
-               f"+ SLA penalty {ui.money(m['sla_penalty'])} = {ui.money(m['total_objective_cost'])}.")
+    st.caption(ui.md_escape(f"Cost breakdown: staffing {ui.money(m['staffing_cost'])} + waiting {ui.money(m['waiting_cost'])} "
+               f"+ SLA penalty {ui.money(m['sla_penalty'])} = {ui.money(m['total_objective_cost'])}."))
 
     tab_timeline, tab_queue, tab_play, tab_records = st.tabs(["Timeline", "Queue & utilization", "Playback", "Service records"])
     with tab_timeline:
@@ -329,7 +334,7 @@ def explanation(opt: dict, results: pd.DataFrame) -> str:
                      f"{ui.money((b.mean_waiting_cost + b.mean_sla_penalty) - (hi.mean_waiting_cost + hi.mean_sla_penalty))} "
                      f"while staffing grows by {ui.money(hi.mean_staffing_cost - b.mean_staffing_cost)}.")
     parts.append("This is the minimum-cost choice under the configured assumptions and cost weights, not a universal optimum.")
-    return " ".join(parts)
+    return ui.md_escape(" ".join(parts))
 
 
 def page_optimize() -> None:
