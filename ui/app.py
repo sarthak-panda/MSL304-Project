@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -167,10 +168,14 @@ def page_builder() -> None:
                    "A fixed dataset is simulated once, so replication controls do not apply.")
         c1, c2 = st.columns([2, 1])
         upload = c1.file_uploader("Upload CSV", type=["csv"])
-        if upload is not None and upload.name != st.session_state.csv_name:
-            frame, errors = parse_passenger_csv(upload.getvalue())
-            st.session_state.csv_frame, st.session_state.csv_errors, st.session_state.csv_name = frame, errors, upload.name
-            st.session_state.is_sample = False
+        if upload is not None:
+            data = upload.getvalue()
+            upload_key = (upload.name, hashlib.sha256(data).hexdigest())
+            if upload_key != st.session_state.get("csv_upload_key"):
+                frame, errors = parse_passenger_csv(data)
+                st.session_state.csv_frame, st.session_state.csv_errors = frame, errors
+                st.session_state.csv_name, st.session_state.csv_upload_key = upload.name, upload_key
+                st.session_state.is_sample = False
         if c2.button("Use sample CSV (synthetic data)", width="stretch"):
             frame, errors = parse_passenger_csv(SAMPLE_CSV.read_bytes())
             st.session_state.csv_frame, st.session_state.csv_errors = frame, errors
