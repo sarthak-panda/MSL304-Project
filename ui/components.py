@@ -57,7 +57,7 @@ def inject_css() -> None:
     st.html("""<style>
     [data-testid="stMetricValue"] { font-size: clamp(1.15rem, 1.9vw, 2.1rem); }
     [data-testid="stMetricValue"] > div, [data-testid="stMetricLabel"] p {
-        white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+        white-space: normal; overflow: visible; text-overflow: clip; word-break: normal; }
     </style>""")
 
 

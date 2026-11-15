@@ -111,46 +111,43 @@ def page_overview() -> None:
                 "Test how many counters to open before committing staff, using a C++ simulation engine.")
     illustrative_badge()
     s = st.session_state.scenario
-    left, right = st.columns([2, 1])
-    with left:
-        st.subheader("Latest result")
-        opt, sim = st.session_state.opt_result, st.session_state.sim_result
-        if opt:
-            st.caption(f"Recommended plan from the last optimization: **{opt['best_counter_count']} counters** "
-                       f"(representative replication, seed {opt['scenario'].get('seed', 'fixed CSV')}).")
-            ui.kpi_row(opt["recommended_simulation"]["metrics"])
-        elif sim:
-            st.caption(f"Last simulation: **{sim['counter_count']} counters**.")
-            ui.kpi_row(sim["metrics"])
-        else:
-            st.info("No runs yet. Load the sample scenario, then run a simulation or optimize staffing.")
-        b1, b2, b3 = st.columns(3)
-        if b1.button("Load sample airport scenario", width="stretch"):
-            ui.load_sample()
+    st.subheader("Latest result")
+    opt, sim = st.session_state.opt_result, st.session_state.sim_result
+    if opt:
+        st.caption(f"Recommended plan from the last optimization: **{opt['best_counter_count']} counters** "
+                   f"(representative replication, seed {opt['scenario'].get('seed', 'fixed CSV')}).")
+        ui.kpi_row(opt["recommended_simulation"]["metrics"])
+    elif sim:
+        st.caption(f"Last simulation: **{sim['counter_count']} counters**.")
+        ui.kpi_row(sim["metrics"])
+    else:
+        st.info("No runs yet. Load the sample scenario, then run a simulation or optimize staffing.")
+    b1, b2, b3 = st.columns(3)
+    if b1.button("Load sample airport scenario", width="stretch"):
+        ui.load_sample()
+        st.rerun()
+    if b2.button("Run baseline simulation", width="stretch", type="primary"):
+        if run_simulation(int(s.get("current_counters") or s["min_counters"])):
             st.rerun()
-        if b2.button("Run baseline simulation", width="stretch", type="primary"):
-            if run_simulation(int(s.get("current_counters") or s["min_counters"])):
-                st.rerun()
-        if b3.button("Optimize staffing", width="stretch", type="primary", key="overview_opt"):
-            if run_optimization():
-                st.rerun()
-    with right:
-        st.subheader("Scenario")
-        rows = {"Name": s["name"], "Input": s["input_mode"]}
-        if s["input_mode"] == "synthetic":
-            rows.update({"Arrival rate": f"{s['arrival_rate_per_hour']:g} / hour",
-                         "Arrival window": f"{s['arrival_window_minutes']:g} min",
-                         "Mean service": f"{s['mean_service_time_minutes']:g} min ({s['service_time_distribution']})",
-                         "Seed / replications": f"{s['seed']} / {s['replications']}"})
-        else:
-            frame = st.session_state.csv_frame
-            rows["Passengers"] = f"{0 if frame is None else len(frame):,} from {st.session_state.csv_name or 'no file'}"
-        rows.update({"Counter range": f"{s['min_counters']} to {s['max_counters']}",
-                     "Current counters": str(s.get("current_counters") or "not set"),
-                     "Counter cost": f"{ui.money(s['counter_cost_per_hour'])} / hour",
-                     "Waiting cost": f"{ui.money(s['waiting_cost_per_passenger_hour'])} / customer-hour",
-                     "SLA": f"wait <= {s['sla_wait_minutes']:g} min, penalty {ui.money(s['sla_penalty_per_passenger'])}"})
-        st.dataframe(pd.DataFrame(rows.items(), columns=["", "value"]), hide_index=True, width="stretch")
+    if b3.button("Optimize staffing", width="stretch", type="primary", key="overview_opt"):
+        if run_optimization():
+            st.rerun()
+    st.subheader("Scenario")
+    rows = {"Name": s["name"], "Input": s["input_mode"]}
+    if s["input_mode"] == "synthetic":
+        rows.update({"Arrival rate": f"{s['arrival_rate_per_hour']:g} / hour",
+                     "Arrival window": f"{s['arrival_window_minutes']:g} min",
+                     "Mean service": f"{s['mean_service_time_minutes']:g} min ({s['service_time_distribution']})",
+                     "Seed / replications": f"{s['seed']} / {s['replications']}"})
+    else:
+        frame = st.session_state.csv_frame
+        rows["Passengers"] = f"{0 if frame is None else len(frame):,} from {st.session_state.csv_name or 'no file'}"
+    rows.update({"Counter range": f"{s['min_counters']} to {s['max_counters']}",
+                 "Current counters": str(s.get("current_counters") or "not set"),
+                 "Counter cost": f"{ui.money(s['counter_cost_per_hour'])} / hour",
+                 "Waiting cost": f"{ui.money(s['waiting_cost_per_passenger_hour'])} / customer-hour",
+                 "SLA": f"wait <= {s['sla_wait_minutes']:g} min, penalty {ui.money(s['sla_penalty_per_passenger'])}"})
+    st.dataframe(pd.DataFrame(rows.items(), columns=["", "value"]), hide_index=True, width="stretch")
     st.caption("Educational decision-support prototype. Recommendations are minimum-cost under the stated "
                "assumptions and cost weights; they are not validated for a real facility without calibration.")
 
