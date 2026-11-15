@@ -70,3 +70,22 @@ def test_ui_validation_catches_bad_form_values():
     errors = validate_scenario(s)
     assert any("Counters" in e for e in errors)
     assert any("Arrival rate" in e for e in errors)
+
+
+@pytest.mark.parametrize("text, fragment", [
+    (b"passenger_id,arrival_time_min,service_time_min\nA,1,2,3\n", "expected 3 fields"),
+    (b"passenger_id,arrival_time_min,service_time_min\nA,1\n", "expected 3 fields"),
+    (b"passenger_id,arrival_time_min,arrival_time_min ,service_time_min\nA,1,1,2\n", "Duplicate column"),
+])
+def test_csv_structure_errors(text, fragment):
+    frame, errors = parse_passenger_csv(text)
+    assert frame is None
+    assert any(fragment in e for e in errors), errors
+
+
+def test_csv_extra_columns_and_bom_are_accepted():
+    frame, errors = parse_passenger_csv(
+        "\ufeffnote, passenger_id ,arrival_time_min,service_time_min\nx,B,2,1\n\ny,A,1,3\n".encode())
+    assert errors == []
+    assert list(frame["passenger_id"]) == ["B", "A"]
+    assert list(frame["arrival_time_min"]) == [2.0, 1.0]

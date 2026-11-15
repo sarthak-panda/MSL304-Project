@@ -1,6 +1,7 @@
 """Scenario defaults, UI-side validation and CSV preparation (no simulation logic here)."""
 from __future__ import annotations
 
+import csv
 import io
 import math
 from typing import Any
@@ -104,10 +105,26 @@ def build_document(s: dict[str, Any], passengers: list[dict] | None = None) -> d
 def parse_passenger_csv(data: bytes) -> tuple[pd.DataFrame | None, list[str]]:
     """Parses and checks an uploaded CSV. Returns (frame, errors); frame is None when unusable."""
     try:
-        df = pd.read_csv(io.BytesIO(data), dtype=str, keep_default_na=False, skipinitialspace=True)
-    except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError) as exc:
+        text = data.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
         return None, [f"Could not read CSV: {exc}"]
-    df.columns = [str(c).strip().lstrip("\ufeff") for c in df.columns]
+    rows = [r for r in csv.reader(io.StringIO(text)) if any(field.strip() for field in r)]
+    if not rows:
+        return None, ["Could not read CSV: the file is empty."]
+    header = [c.strip() for c in rows[0]]
+    duplicated = sorted({c for c in header if header.count(c) > 1})
+    if duplicated:
+        return None, [f"Duplicate column name(s): {', '.join(duplicated)}."]
+    bad_width = [i + 1 for i, r in enumerate(rows[1:], start=1) if len(r) != len(header)]
+    if bad_width:
+        listed = ", ".join(str(n) for n in bad_width[:5])
+        return None, [f"Row(s) {listed}: expected {len(header)} fields to match the header."]
+    try:
+        df = pd.read_csv(io.StringIO(text), dtype=str, keep_default_na=False, skipinitialspace=True,
+                         index_col=False, skip_blank_lines=True)
+    except (pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+        return None, [f"Could not read CSV: {exc}"]
+    df.columns = header
     missing = [c for c in CSV_COLUMNS if c not in df.columns]
     if missing:
         return None, [f"Missing required column(s): {', '.join(missing)}. Expected {', '.join(CSV_COLUMNS)}."]
