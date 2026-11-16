@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FlowSim live demo</title>
+<link rel="icon" href="assets/avatar.jpg" />
+<style>
+@font-face { font-family: "Barlow"; src: url("demo/fonts/barlow-400.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "Barlow"; src: url("demo/fonts/barlow-600.woff2") format("woff2"); font-weight: 600; }
+@font-face { font-family: "Barlow Condensed"; src: url("demo/fonts/barlowcond-500.woff2") format("woff2"); font-weight: 500; }
+@font-face { font-family: "Barlow Condensed"; src: url("demo/fonts/barlowcond-700.woff2") format("woff2"); font-weight: 700; }
+:root { --bg: #111417; --panel: #1a1f24; --line: #2a3036; --ink: #e9ecef; --mute: #8a949e; --soft: #b9c1c8; --sign: #ffd23f; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 "Barlow", sans-serif; }
+main { max-width: 1240px; margin: 0 auto; padding: 28px 24px 20px; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.brand { font: 700 30px "Barlow Condensed", sans-serif; letter-spacing: .06em; }
+.brand span, .course span { color: var(--sign); }
+header a { color: var(--soft); font-size: 14px; text-decoration: none; border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; }
+header a:hover { border-color: var(--sign); color: var(--ink); }
+.kicker { font: 500 13px "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .14em; color: var(--mute); }
+h1 { font: 700 30px/1.1 "Barlow Condensed", sans-serif; margin: 2px 0 14px; }
+h2 { font: 700 26px/1.15 "Barlow Condensed", sans-serif; margin: 2px 0 8px; }
+.runs { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.runs button { height: 46px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px;
+  font: 600 15px "Barlow", sans-serif; cursor: pointer; }
+.runs button:hover { border-color: #4a525a; }
+.runs button.primary { background: var(--sign); border-color: var(--sign); color: #111417; }
+.runs button.on { outline: 2px solid var(--sign); outline-offset: 2px; }
+#demo { display: block; width: 100%; height: 0; border: 0; margin-bottom: 16px; }
+.poster { width: 100%; display: block; border-radius: 6px; }
+body.playing .poster { display: none; }
+.intro { display: grid; grid-template-columns: 5fr 4fr; gap: 36px; margin-top: 22px; }
+.lead { color: var(--soft); max-width: 38rem; margin: 0 0 14px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; }
+math { font-size: 1.2em; display: block math; margin: 10px 0 6px; }
+.legend { color: var(--mute); font-size: 13px; text-align: center; }
+.legend b { color: #d4d9de; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chips span { border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; font-size: 14px; color: var(--soft); }
+ol { list-style: none; margin: 8px 0 0; padding: 14px 18px; counter-reset: s; }
+ol li { counter-increment: s; padding: 6px 0 6px 34px; position: relative; }
+ol li::before { content: counter(s); position: absolute; left: 0; top: 8px; width: 23px; height: 23px; border-radius: 50%;
+  background: var(--sign); color: #111417; font: 700 14px/23px "Barlow Condensed", sans-serif; text-align: center; }
+ol small { display: block; color: var(--mute); font-size: 14px; }
+.note { color: var(--mute); font-size: 14px; margin-top: 18px; }
+.note code { color: var(--soft); }
+footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 36px;
+  padding-top: 16px; border-top: 1px solid var(--line); color: var(--mute); font-size: 15px; }
+footer a { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+footer a:hover b { color: var(--sign); }
+footer img { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #3a4048; object-fit: cover; }
+footer b { color: var(--ink); font-weight: 600; }
+.course { font: 600 16px "Barlow Condensed", sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+@media (max-width: 860px) {
+  .runs { grid-template-columns: 1fr 1fr; } .runs button.primary { grid-column: 1 / -1; }
+  .intro { grid-template-columns: 1fr; gap: 20px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">FLOW<span>SIM</span></div>
+    <a href="https://github.com/sarthak-panda/MSL304-Project" target="_blank" rel="noopener">Source on GitHub</a>
+  </header>
+  <div class="kicker">Airport security</div>
+  <h1>Same passengers, two staffing plans</h1>
+  <div class="runs">
+    <button class="primary" data-run="rush" type="button">&#9655;&nbsp; Play the morning rush</button>
+    <button data-run="quiet" type="button">Quiet midday</button>
+    <button data-run="peak" type="button">Holiday peak</button>
+  </div>
+  <iframe id="demo" src="demo/index.html" title="FlowSim live replay"></iframe>
+
+  <img class="poster" src="assets/poster.jpg" alt="Two security halls side by side" />
+  <section class="intro">
+    <div>
+      <div class="kicker">MSL304 course project</div>
+      <h2>How many security lanes should be open?</h2>
+      <p class="lead">Too few lanes and the line explodes. Too many and you pay idle staff.
+        FlowSim simulates every passenger and picks the lane count with the lowest total cost.</p>
+      <div class="card">
+        <div class="kicker">Objective</div>
+        <math display="block">
+          <munder><mi>min</mi><mrow><msub><mi>c</mi><mi>min</mi></msub><mo>&le;</mo><mi>c</mi><mo>&le;</mo><msub><mi>c</mi><mi>max</mi></msub></mrow></munder>
+          <mspace width="0.3em"/>
+          <mi mathvariant="double-struck">E</mi>
+          <mo>[</mo>
+          <munder><mfrac><mrow><mi>c</mi><mspace width="0.15em"/><msub><mi>r</mi><mi>s</mi></msub><mspace width="0.15em"/><mi>T</mi></mrow><mn>60</mn></mfrac><mtext>lanes</mtext></munder>
+          <mo>+</mo>
+          <munder><mrow><mfrac><msub><mi>r</mi><mi>w</mi></msub><mn>60</mn></mfrac><munder><mo>&sum;</mo><mi>i</mi></munder><msub><mi>W</mi><mi>i</mi></msub></mrow><mtext>waiting</mtext></munder>
+          <mo>+</mo>
+          <munder><mrow><mi>p</mi><mo>&middot;</mo><mi>#</mi><mo>{</mo><mi>i</mi><mo>:</mo><msub><mi>W</mi><mi>i</mi></msub><mo>&gt;</mo><mi>S</mi><mo>}</mo></mrow><mtext>late passengers</mtext></munder>
+          <mo>]</mo>
+        </math>
+        <div class="legend"><b>c</b> lanes &nbsp; <b>T</b> last service (min) &nbsp; <b>W<sub>i</sub></b> wait of passenger i &nbsp;
+          <b>S</b> target wait &nbsp; <b>r<sub>s</sub>, r<sub>w</sub>, p</b> cost rates</div>
+      </div>
+      <div class="chips"><span>C++20 event engine</span><span>Multithreaded replications</span>
+        <span>Common random numbers</span><span>Three.js replay</span></div>
+    </div>
+    <div>
+      <div class="kicker">How to use</div>
+      <ol class="card">
+        <li>Press <b>Play the morning rush</b><small>a 4 hour rush plays out</small></li>
+        <li>Watch both halls<small>same passengers, today's 4 lanes vs FlowSim's plan</small></li>
+        <li>Read the rings<small>green on time, amber close, red late</small></li>
+        <li>Pause, scrub or go 8x<small>controls sit above the halls</small></li>
+        <li>Try <b>Quiet midday</b> or <b>Holiday peak</b><small>sometimes the plan closes lanes</small></li>
+      </ol>
+      <p class="note">This page replays results the C++ engine computed when the site was built.
+        For your own numbers, run the full app: <code>./scripts/run_demo.sh</code></p>
+    </div>
+  </section>
+
+  <footer>
+    <a href="https://github.com/sarthak-panda" target="_blank" rel="noopener">
+      <img src="assets/avatar.jpg" alt="sarthak-panda" /><span><b>sarthak-panda</b> &nbsp;2022CS51217</span></a>
+    <span class="course"><span>MSL304</span> Project</span>
+  </footer>
+</main>
+<script>
+// Hosts the live demo the same way Streamlit does: render messages in, frame height out.
+const frame = document.getElementById("demo");
+let ready = false, pending = null;
+const send = (args) => frame.contentWindow.postMessage({ type: "streamlit:render", args }, "*");
+window.addEventListener("message", (ev) => {
+  const d = ev.data;
+  if (ev.source !== frame.contentWindow || !d || !d.isStreamlitMessage) return;
+  if (d.type === "streamlit:componentReady") { ready = true; if (pending) send(pending); }
+  if (d.type === "streamlit:setFrameHeight") frame.style.height = `${d.height}px`;
+});
+document.querySelectorAll(".runs button").forEach((b) => b.addEventListener("click", async () => {
+  document.querySelectorAll(".runs button").forEach((o) => o.classList.toggle("on", o === b));
+  document.body.classList.add("playing");
+  const args = await (await fetch(`data/${b.dataset.run}.json`)).json();
+  args.run_id = `${b.dataset.run}-${Date.now()}`;
+  if (ready) send(args); else pending = args;
+  frame.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+</script>
+</body>
+</html>

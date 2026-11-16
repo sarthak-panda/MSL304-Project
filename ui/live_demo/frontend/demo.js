@@ -26,7 +26,9 @@ const money = (v) => `${data.meta.currency}${Math.round(v).toLocaleString("en-US
 
 // ---------- assets ----------
 async function loadAssets() {
-  const loader = new GLTFLoader();
+  const manager = new THREE.LoadingManager();
+  manager.onProgress = (_url, done, total) => { $("loading").textContent = `Loading hall ${Math.round((done / total) * 100)}%`; };
+  const loader = new GLTFLoader(manager);
   const get = (p) => loader.loadAsync(`./models/${p}.glb`);
   const [people, officer, scanner, belt, fence, column, luggage] = await Promise.all([
     Promise.all(PEOPLE.map((n) => get(`people/character-${n}`))),
@@ -377,12 +379,15 @@ async function init() {
   requestAnimationFrame(frame);
 }
 
+// With no run yet the frame stays collapsed (height 0) and only preloads the models.
 window.addEventListener("message", (ev) => {
   if (!ev.data || ev.data.type !== "streamlit:render") return;
   const args = ev.data.args;
   if (args.run_id === runId) return;
-  runId = args.run_id; data = { today: args.today, plan: args.plan, meta: args.meta };
-  if (assets) reset();
+  runId = args.run_id;
+  data = args.today && args.plan ? { today: args.today, plan: args.plan, meta: args.meta } : null;
+  document.body.classList.toggle("idle", !data);
+  if (data && assets) reset();
   setHeight();
 });
 

@@ -85,3 +85,36 @@ def test_live_payload_matches_engine_records(client):
     assert sorted(zip(payload["arrival"], payload["start"], payload["end"], payload["counter"])) == sorted(
         (r["arrival_time_min"], r["service_start_min"], r["service_end_min"], r["counter_id"]) for r in recs)
     assert payload["metrics"]["total_objective_cost"] == sim["metrics"]["total_objective_cost"]
+
+
+def test_landing_page_has_intro_and_footer(client):
+    at = AppTest.from_file(APP, default_timeout=90).run()
+    assert not at.exception and not at.error
+    text = " ".join(m.value for m in at.markdown)
+    assert "How many security lanes should be open?" in text
+    assert "2022CS51217" in text and "https://github.com/sarthak-panda" in text
+    assert at.session_state["live_busy"] is None
+
+
+def test_footer_on_every_page(client):
+    at = AppTest.from_file(APP, default_timeout=90).run()
+    for name in ["Scenario Builder", "Simulation", "Optimize Staffing", "Experiments & Export"]:
+        page(at, name)
+        assert "2022CS51217" in " ".join(m.value for m in at.markdown), name
+
+
+def test_pages_build_replays_engine_results(client, tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("build_pages", ROOT / "scripts" / "build_pages.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    results = mod.build(tmp_path / "site")
+    site = tmp_path / "site"
+    for f in ("index.html", "demo/index.html", "demo/demo.js", "assets/avatar.jpg", "assets/poster.jpg"):
+        assert (site / f).is_file(), f
+    for run, opt in results.items():
+        data = json.loads((site / "data" / f"{run}.json").read_text())
+        assert data["today"]["counters"] == opt["baseline_simulation"]["counter_count"]
+        assert data["plan"]["counters"] == opt["best_counter_count"]
+        assert data["plan"]["metrics"]["total_objective_cost"] == opt["recommended_simulation"]["metrics"]["total_objective_cost"]
+        assert len(data["plan"]["arrival"]) == len(opt["recommended_simulation"]["service_records"])

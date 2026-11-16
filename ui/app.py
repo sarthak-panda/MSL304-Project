@@ -84,50 +84,111 @@ def run_simulation(counters: int) -> bool:
     return True
 
 
-def run_optimization(scenario_override: dict | None = None) -> bool:
+def optimize_now(scenario_override: dict | None = None, spinner: bool = True) -> list[str]:
+    """Runs the optimizer on the current scenario and returns error messages (empty on success)."""
     if scenario_override is not None:
         st.session_state.scenario = scenario_override
     scenario, passengers, errors = scenario_ready()
     if errors:
-        for e in errors:
-            st.error(e)
-        return False
+        return errors
     try:
-        with st.spinner("Evaluating every staffing level in the C++ engine..."):
+        if spinner:
+            with st.spinner("Evaluating every staffing level in the C++ engine..."):
+                result = client.optimize(build_document(scenario, passengers))
+        else:
             result = client.optimize(build_document(scenario, passengers))
     except FlowSimError as err:
-        show_engine_error(err)
-        return False
+        return [f"**Engine error ({err.code})**: {err}"]
     st.session_state.opt_result = result
     st.session_state.opt_scenario = scenario
     st.session_state.live_run += 1
     ui.add_history("optimization", scenario, {"counters": result["best_counter_count"],
                                               "total_cost": round(result["best_objective_cost"], 2),
                                               "mean_wait_min": round(result["recommended_simulation"]["metrics"]["mean_wait_min"], 3)})
-    return True
+    return []
+
+
+def run_optimization(scenario_override: dict | None = None) -> bool:
+    errors = optimize_now(scenario_override)
+    for e in errors:
+        st.error(e)
+    return not errors
 
 
 # ---------------------------------------------------------------- pages
 
+def queue_live_run(kind: str) -> None:
+    st.session_state.live_busy = kind
+    st.session_state.live_errors = []
+
+
+OBJECTIVE = (r"\min_{c_{\min} \le c \le c_{\max}} \; \mathbb{E}\Big[\,"
+             r"\underbrace{\tfrac{c \, r_s \, T}{60}}_{\text{lanes}}"
+             r" + \underbrace{\tfrac{r_w}{60} \textstyle\sum_i W_i}_{\text{waiting}}"
+             r" + \underbrace{p \cdot \#\{\, i : W_i > S \,\}}_{\text{late passengers}}\Big]")
+
+
+def landing_intro() -> None:
+    st.image(str(POSTER), width="stretch")
+    left, right = st.columns([5, 4], gap="large")
+    with left:
+        st.markdown("<div class='fs-kicker'>MSL304 course project</div>"
+                    "<div class='fs-h2'>How many security lanes should be open?</div>"
+                    "<p class='fs-lead'>Too few lanes and the line explodes. Too many and you pay idle staff. "
+                    "FlowSim simulates every passenger and picks the lane count with the lowest total cost.</p>",
+                    unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("<div class='fs-kicker'>Objective</div>", unsafe_allow_html=True)
+            st.latex(OBJECTIVE)
+            st.markdown("<div class='fs-legend'><b>c</b> lanes &nbsp; <b>T</b> last service (min) &nbsp; "
+                        "<b>W<sub>i</sub></b> wait of passenger i &nbsp; <b>S</b> target wait &nbsp; "
+                        "<b>r<sub>s</sub>, r<sub>w</sub>, p</b> cost rates</div>", unsafe_allow_html=True)
+        ui.chips(["C++20 event engine", "Multithreaded replications", "Common random numbers", "Streamlit + Three.js"])
+    with right:
+        st.markdown("<div class='fs-kicker'>How to use</div>", unsafe_allow_html=True)
+        steps = [
+            (":material/play_arrow:", "Press **Load sample and simulate**", "a 4 hour morning rush plays out"),
+            (":material/compare:", "Watch both halls", "same passengers, today's lanes vs FlowSim's"),
+            (":material/timer:", "Read the rings", "green on time, amber close, red late"),
+            (":material/fast_forward:", "Pause, scrub or go 8x", "controls sit above the halls"),
+            (":material/tune:", "Try your own numbers", "edit **Scenario Builder**, then **Simulate my scenario**"),
+        ]
+        with st.container(border=True):
+            for n, (icon, title, sub) in enumerate(steps, 1):
+                st.markdown(f"<span class='fs-step'>{n}</span> {icon} &nbsp;{title}  \n"
+                            f"<span class='fs-sub'>{sub}</span>", unsafe_allow_html=True)
+
+
 def page_live() -> None:
+    busy = st.session_state.live_busy
     st.markdown("<div class='fs-kicker'>Airport security, morning rush</div>"
                 "<div class='fs-title'>Same passengers, two staffing plans</div>", unsafe_allow_html=True)
     head = st.columns(2)
-    if head[0].button("Load sample and simulate", type="primary", width="stretch", icon=":material/play_arrow:"):
-        ui.load_sample()
-        if run_optimization():
-            st.rerun()
-    if head[1].button("Simulate my scenario", width="stretch", icon=":material/tune:", key="live_mine"):
-        if run_optimization():
-            st.rerun()
+    head[0].button("Running the engine" if busy == "sample" else "Load sample and simulate", type="primary",
+                   width="stretch", icon="spinner" if busy == "sample" else ":material/play_arrow:",
+                   disabled=bool(busy), on_click=queue_live_run, args=("sample",), key="live_sample")
+    head[1].button("Running the engine" if busy == "mine" else "Simulate my scenario", width="stretch",
+                   icon="spinner" if busy == "mine" else ":material/tune:",
+                   disabled=bool(busy), on_click=queue_live_run, args=("mine",), key="live_mine")
     opt = st.session_state.opt_result
+    playable = bool(opt and opt.get("baseline_simulation"))
+    # Always mounted at the same spot so the 3D models load while the landing page is shown.
+    live_demo(opt if playable else None, ui.CURRENCIES[st.session_state.currency],
+              run_id=f"run-{st.session_state.live_run}" if playable else "idle")
+    if busy:
+        st.session_state.live_busy = None
+        if busy == "sample":
+            ui.load_sample()
+        st.session_state.live_errors = optimize_now(spinner=False)
+        st.rerun()
+    for e in st.session_state.live_errors:
+        st.error(e)
     if not opt:
-        st.image(str(POSTER), width="stretch")
+        landing_intro()
         return
-    if not opt.get("baseline_simulation"):
+    if not playable:
         st.warning("Set **Current counters** in the Scenario Builder to compare today's plan with FlowSim's.")
         return
-    live_demo(opt, ui.CURRENCIES[st.session_state.currency], run_id=f"run-{st.session_state.live_run}")
     used = st.session_state.opt_scenario
     if used["input_mode"] == "synthetic":
         chips = [f"{used['arrival_rate_per_hour']:g} passengers / hour", f"{used['mean_service_time_minutes']:g} min per check"]
@@ -454,3 +515,4 @@ with st.sidebar:
 PAGE_FUNCS = {"Live demo": page_live, "Scenario Builder": page_builder, "Simulation": page_simulation,
               "Optimize Staffing": page_optimize, "Experiments & Export": page_export}
 PAGE_FUNCS[page]()
+ui.footer()
