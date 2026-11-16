@@ -56,3 +56,21 @@ html, body { margin: 0; background: transparent; color: var(--ink); font-family:
 .chart { background: var(--bg); padding: 10px 14px 6px; }
 .chart h3 { margin: 0; font: 600 14px "Barlow Condensed"; text-transform: uppercase; letter-spacing: .1em; color: var(--mute); }
 .chart canvas { width: 100%; height: 190px; display: block; }
+@media (max-width: 820px) {
+  .bar { grid-template-columns: auto 1fr; gap: 10px 14px; padding: 10px 12px; }
+  .controls { justify-self: end; gap: 6px; }
+  .btn { min-width: 0; padding: 0 12px; }
+  .speed button { width: 34px; }
+  #scrub, .legend { grid-column: 1 / -1; }
+  .legend { justify-content: flex-end; }
+  .half { flex-direction: column; justify-content: flex-start; gap: 6px; padding: 10px; }
+  .tag { padding: 4px 10px 6px; }
+  .tag b { font-size: 20px; }
+  .board div { min-width: 0; padding: 4px 8px; }
+  .board small { font-size: 10px; letter-spacing: .06em; }
+  .board b { font-size: 18px; white-space: nowrap; }
+  .end { padding: 14px 18px; }
+  .end h2 { font-size: 20px; }
+  .end td { font-size: 17px; padding-left: 12px; }
+  .end th { padding-left: 12px; }
+}

@@ -110,15 +110,14 @@ def run_optimization(scenario_override: dict | None = None) -> bool:
 # ---------------------------------------------------------------- pages
 
 def page_live() -> None:
-    head = st.columns([2.4, 1.4, 1.2], vertical_alignment="center")
-    with head[0]:
-        st.markdown(f"<div class='fs-kicker'>Airport security, morning rush</div>"
-                    f"<div class='fs-title'>Same passengers, two staffing plans</div>", unsafe_allow_html=True)
-    if head[1].button("Load sample and simulate", type="primary", width="stretch", icon=":material/play_arrow:"):
+    st.markdown("<div class='fs-kicker'>Airport security, morning rush</div>"
+                "<div class='fs-title'>Same passengers, two staffing plans</div>", unsafe_allow_html=True)
+    head = st.columns(2)
+    if head[0].button("Load sample and simulate", type="primary", width="stretch", icon=":material/play_arrow:"):
         ui.load_sample()
         if run_optimization():
             st.rerun()
-    if head[2].button("Simulate my scenario", width="stretch", icon=":material/tune:", key="live_mine"):
+    if head[1].button("Simulate my scenario", width="stretch", icon=":material/tune:", key="live_mine"):
         if run_optimization():
             st.rerun()
     opt = st.session_state.opt_result
