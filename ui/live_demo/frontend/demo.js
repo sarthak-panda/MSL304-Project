@@ -324,8 +324,19 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// Frees GPU buffers held by a discarded hall; shared asset textures are kept.
+function disposeHall(h) {
+  h.scene.traverse((o) => {
+    if (o.isSkinnedMesh) o.skeleton.dispose();
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) [].concat(o.material).forEach((m) => m.dispose());
+    if (o.isLight && o.shadow && o.shadow.map) o.shadow.map.dispose();
+  });
+  h.ringGeo.dispose();
+}
+
 function reset() {
-  for (const h of halls) for (const i of [...h.actors.keys()]) despawn(h, i);
+  for (const h of halls) { for (const i of [...h.actors.keys()]) despawn(h, i); disposeHall(h); }
   halls.length = 0;
   const lanes = Math.max(data.today.counters, data.plan.counters);
   const maxQ = Math.max(data.today.metrics.max_queue_length, data.plan.metrics.max_queue_length);
