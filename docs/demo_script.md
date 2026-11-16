@@ -10,12 +10,21 @@
 Open http://localhost:8501. The sidebar should show the engine version, for example
 `flowsim_cli 1.0.0 (C++20, gcc 11.4, Release, schema 1)`.
 
-## 1. Problem (30 s)
+## 1. Live demo (90 s)
 
-"An airport security checkpoint has to decide how many counters to open. Too few gives long queues and SLA
-breaches; too many wastes staff. FlowSim tests staffing plans in a simulation before committing people."
+The app opens on **Live demo**. Press **Load sample and simulate**. Two security halls start playing with the
+same passengers: **Today** with 4 lanes on the left, the **FlowSim plan** with 6 lanes on the right.
 
-## 2. Scenario (45 s)
+- Let the audience watch the left line grow while the right hall keeps up. Rings under passengers turn amber and
+  then red as they wait longer than the 10 minute target.
+- Point at **Cost so far**: the plan costs a little more at first because it pays for 2 extra lanes, then the
+  waiting and late passengers on the left overtake it around the 2 hour mark.
+- Press **8x** to reach the end. The summary card shows the result for this run and the average saving over 10
+  simulated runs (about 34%).
+
+Use **Replay** or drag the timeline to show any moment again.
+
+## 2. Scenario (30 s)
 
 Go to **Scenario Builder**. Point out the illustrative morning peak: 240 minute window, 48 customers per hour,
 5.5 minute mean service, current plan of 4 counters, costs of 250 per counter-hour and 35 per waiting

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import html
 from datetime import datetime
 from typing import Any
 
@@ -37,6 +38,7 @@ def init_state() -> None:
         "history": [],
         "currency": "INR (₹)",
         "form_version": 0,
+        "live_run": 0,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -55,10 +57,27 @@ def md_escape(text: str) -> str:
 
 def inject_css() -> None:
     st.html("""<style>
-    [data-testid="stMetricValue"] { font-size: clamp(1.15rem, 1.9vw, 2.1rem); }
+    [data-testid="stMetricValue"] { font-size: clamp(1.15rem, 1.9vw, 2.1rem); font-family: 'Barlow Condensed', sans-serif; }
     [data-testid="stMetricValue"] > div, [data-testid="stMetricLabel"] p {
         white-space: normal; overflow: visible; text-overflow: clip; word-break: normal; }
+    [data-testid="stMetricLabel"] p { text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; color: #8a949e; }
+    button[kind="primary"], button[kind="primaryFormSubmit"] { color: #111417 !important; font-weight: 600; }
+    button[kind="primary"] p, button[kind="primaryFormSubmit"] p { color: #111417 !important; }
+    .stButton button, .stDownloadButton button, .stFormSubmitButton button { min-height: 2.6rem; }
+    .block-container { padding-top: 2.2rem; }
+    h1 { font-weight: 700; letter-spacing: .01em; }
+    .fs-brand { font: 700 1.9rem 'Barlow Condensed', sans-serif; letter-spacing: .06em; color: #e9ecef; margin: -.4rem 0 .6rem; }
+    .fs-brand span { color: #ffd23f; }
+    .fs-kicker { font: 500 .8rem 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .14em; color: #8a949e; }
+    .fs-title { font: 700 1.75rem/1.1 'Barlow Condensed', sans-serif; color: #e9ecef; white-space: nowrap; }
+    .fs-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: .4rem 0; }
+    .fs-chips span { border: 1px solid #2a3036; border-radius: 4px; padding: 3px 10px; font-size: .85rem; color: #b9c1c8; }
     </style>""")
+
+
+def chips(items: list[str]) -> None:
+    body = "".join(f"<span>{html.escape(i)}</span>" for i in items)
+    st.markdown(f"<div class='fs-chips'>{body}</div>", unsafe_allow_html=True)
 
 
 def money(value: float | None) -> str:

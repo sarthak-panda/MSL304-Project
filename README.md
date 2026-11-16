@@ -3,7 +3,7 @@
 Discrete-event simulation and staffing optimization for service counters, built for the MSL304 course project.
 The first scenario is an airport security checkpoint.
 
-![Optimize Staffing page](docs/screenshots/optimize_staffing.png)
+![Live demo: today's 4 lanes vs the FlowSim plan's 6 lanes, same passengers](docs/screenshots/live_demo.png)
 
 ## Problem
 
@@ -33,6 +33,9 @@ optimum, and the bundled sample parameters are illustrative, not measured airpor
   numbers so every plan sees the same customers. Ties go to fewer counters.
 - **Bounded parallel evaluation** with `std::jthread`; sequential and parallel results are identical.
 - **Baseline comparison** against the current staffing plan, with savings and wait change.
+- **Live demo**: a 3D security hall plays the engine's current-plan and recommended-plan runs side by side with the
+  same passengers. Each passenger arrives, queues and is served at the exact times and counter the engine reported,
+  while live charts of people in line and cost so far grow with the clock. One click loads the sample and starts it.
 - **Streamlit UI**: scenario builder, CSV upload with validation preview, KPI cards, queue and utilization charts,
   counter timeline, time playback, cost trade-off charts, a plain-language recommendation, run history, and JSON and
   CSV downloads.
@@ -43,13 +46,17 @@ optimum, and the bundled sample parameters are illustrative, not measured airpor
 
 All screenshots are from the running app with the sample scenario.
 
-| Overview | Scenario Builder |
+| Live demo result | Scenario Builder |
 | --- | --- |
-| ![Overview](docs/screenshots/overview.png) | ![Scenario Builder](docs/screenshots/scenario_builder.png) |
+| ![Live demo result](docs/screenshots/live_demo_result.png) | ![Scenario Builder](docs/screenshots/scenario_builder.png) |
 
 | Simulation | Experiments & Export |
 | --- | --- |
 | ![Simulation](docs/screenshots/simulation.png) | ![Experiments and export](docs/screenshots/experiments_export.png) |
+
+| Optimize Staffing |
+| --- |
+| ![Optimize Staffing](docs/screenshots/optimize_staffing.png) |
 
 ## Prerequisites
 
@@ -88,8 +95,9 @@ use another location.
 
 ## Loading the sample scenario
 
-The app starts with the sample airport scenario already loaded, and every page has a **Load sample airport scenario**
-button to restore it. The same scenario is in `config/example_scenario.json`. For CSV mode, choose
+The app opens on **Live demo**. Press **Load sample and simulate** to load the sample airport scenario, run the
+optimizer and start the animation. **Simulate my scenario** does the same with the scenario from the Scenario Builder,
+and the Scenario Builder also has a **Load sample airport scenario** button. The same scenario is in `config/example_scenario.json`. For CSV mode, choose
 **Uploaded customer CSV** on the Scenario Builder page and press **Use sample CSV (synthetic data)**, or upload your own
 file with the columns `passenger_id, arrival_time_min, service_time_min`.
 
@@ -204,6 +212,8 @@ bench/               sequential vs parallel benchmark
 tests/               C++ unit tests (custom minimal framework) and CTest registration
 tests/python/        pytest suite for the client, CLI contract and Streamlit app
 ui/                  Streamlit app, engine client, scenario helpers, charts, theme
+ui/live_demo/        live demo component (Three.js scene, 3D models, live charts)
+ui/static/           fonts and the live demo poster image
 config/              example scenario JSON
 data/                synthetic sample customer CSV
 docs/                model, architecture, demo script and screenshots
@@ -217,6 +227,24 @@ seed_prompt.md       engineering specification
 - [Architecture](docs/architecture.md)
 - [Demo script](docs/demo_script.md)
 - [Project proposal](2022CS51217_Sarthak_Panda_MSL304_Project_Proposal.pdf)
+
+## Live demo
+
+The animation is a replay, not a second simulator. Python passes the engine's representative runs for the current plan
+(`baseline_simulation`) and the recommended plan (`recommended_simulation`) to a custom Streamlit component in
+`ui/live_demo/`. For every passenger it uses the engine's arrival time, service start, service end and counter. The
+walking between those points is decoration. The boards and charts are computed from the same records, so at the end
+they match the engine's metrics for those runs, and the summary card also shows the engine's mean savings across all
+replications.
+
+- Controls: play or pause, replay, speed (1x is 2 simulated minutes per second) and a timeline slider.
+- Ring under each passenger: green under half the target wait, amber up to the target, red beyond it.
+- Up to 260 passengers per hall are drawn at once; the counts and charts always use every record.
+- Three.js r170 and all models are bundled in the repo, so the demo works offline. The 3D models are from Kenney's
+  [Mini Characters](https://kenney.nl/assets/mini-characters), [Conveyor Kit](https://kenney.nl/assets/conveyor-kit)
+  and [Mini Market](https://kenney.nl/assets/mini-market) packs (CC0). The fonts are Barlow and Barlow Condensed
+  (SIL Open Font License). Licenses are next to the files.
+- A browser with WebGL is required.
 
 ## Limitations
 
