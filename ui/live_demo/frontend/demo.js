@@ -126,7 +126,13 @@ function spawn(h, i) {
   return a;
 }
 
-function despawn(h, i) { const a = h.actors.get(i); h.scene.remove(a.g); a.mixer.stopAllAction(); h.actors.delete(i); }
+function despawn(h, i) {
+  const a = h.actors.get(i);
+  h.scene.remove(a.g); a.mixer.stopAllAction(); a.mixer.uncacheRoot(a.mixer.getRoot());
+  a.g.traverse((o) => { if (o.isSkinnedMesh) o.skeleton.dispose(); });
+  a.ring.material.dispose();
+  h.actors.delete(i);
+}
 
 // ---------- per-frame hall update ----------
 const tmp = new THREE.Vector3();
