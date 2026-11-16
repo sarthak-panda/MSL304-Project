@@ -14,13 +14,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import charts  # noqa: E402
 import components as ui  # noqa: E402
 from flowsim_client import REPO_ROOT, FlowSimClient, FlowSimError  # noqa: E402
+from live_demo import live_demo  # noqa: E402
 from scenario import (MAX_COUNTERS, SAMPLE_SCENARIO, MAX_REPLICATIONS, MAX_THREADS, build_document, parse_passenger_csv,  # noqa: E402
                       passengers_from_frame, validate_scenario)
 
 SAMPLE_CSV = REPO_ROOT / "data" / "sample_passengers.csv"
-PAGES = ["Overview", "Scenario Builder", "Simulation", "Optimize Staffing", "Experiments & Export"]
+POSTER = Path(__file__).resolve().parent / "static" / "poster.jpg"
+PAGES = ["Live demo", "Scenario Builder", "Simulation", "Optimize Staffing", "Experiments & Export"]
 
-st.set_page_config(page_title="FlowSim", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="FlowSim", page_icon=":material/airport_shuttle:", layout="wide", initial_sidebar_state="expanded")
 ui.inject_css()
 ui.init_state()
 client = FlowSimClient()
@@ -58,7 +60,8 @@ def show_engine_error(err: FlowSimError) -> None:
 
 def illustrative_badge() -> None:
     if st.session_state.is_sample and st.session_state.scenario["input_mode"] == "synthetic":
-        st.caption(":orange-badge[Illustrative sample data] Parameters are example values, not measured airport data.")
+        st.badge("Sample data", icon=":material/science:", color="orange",
+                 help="Illustrative parameters, not measured airport data.")
 
 
 def run_simulation(counters: int) -> bool:
@@ -97,6 +100,7 @@ def run_optimization(scenario_override: dict | None = None) -> bool:
         return False
     st.session_state.opt_result = result
     st.session_state.opt_scenario = scenario
+    st.session_state.live_run += 1
     ui.add_history("optimization", scenario, {"counters": result["best_counter_count"],
                                               "total_cost": round(result["best_objective_cost"], 2),
                                               "mean_wait_min": round(result["recommended_simulation"]["metrics"]["mean_wait_min"], 3)})
@@ -105,51 +109,33 @@ def run_optimization(scenario_override: dict | None = None) -> bool:
 
 # ---------------------------------------------------------------- pages
 
-def page_overview() -> None:
-    st.title("FlowSim")
-    st.markdown("Discrete-event simulation and staffing optimization for service counters. "
-                "Test how many counters to open before committing staff, using a C++ simulation engine.")
-    illustrative_badge()
-    s = st.session_state.scenario
-    st.subheader("Latest result")
-    opt, sim = st.session_state.opt_result, st.session_state.sim_result
-    if opt:
-        st.caption(f"Recommended plan from the last optimization: **{opt['best_counter_count']} counters** "
-                   f"(representative replication, seed {opt['scenario'].get('seed', 'fixed CSV')}).")
-        ui.kpi_row(opt["recommended_simulation"]["metrics"])
-    elif sim:
-        st.caption(f"Last simulation: **{sim['counter_count']} counters**.")
-        ui.kpi_row(sim["metrics"])
-    else:
-        st.info("No runs yet. Load the sample scenario, then run a simulation or optimize staffing.")
-    b1, b2, b3 = st.columns(3)
-    if b1.button("Load sample airport scenario", width="stretch"):
+def page_live() -> None:
+    st.markdown("<div class='fs-kicker'>Airport security, morning rush</div>"
+                "<div class='fs-title'>Same passengers, two staffing plans</div>", unsafe_allow_html=True)
+    head = st.columns(2)
+    if head[0].button("Load sample and simulate", type="primary", width="stretch", icon=":material/play_arrow:"):
         ui.load_sample()
-        st.rerun()
-    if b2.button("Run baseline simulation", width="stretch", type="primary"):
-        if run_simulation(int(s.get("current_counters") or s["min_counters"])):
-            st.rerun()
-    if b3.button("Optimize staffing", width="stretch", type="primary", key="overview_opt"):
         if run_optimization():
             st.rerun()
-    st.subheader("Scenario")
-    rows = {"Name": s["name"], "Input": s["input_mode"]}
-    if s["input_mode"] == "synthetic":
-        rows.update({"Arrival rate": f"{s['arrival_rate_per_hour']:g} / hour",
-                     "Arrival window": f"{s['arrival_window_minutes']:g} min",
-                     "Mean service": f"{s['mean_service_time_minutes']:g} min ({s['service_time_distribution']})",
-                     "Seed / replications": f"{s['seed']} / {s['replications']}"})
+    if head[1].button("Simulate my scenario", width="stretch", icon=":material/tune:", key="live_mine"):
+        if run_optimization():
+            st.rerun()
+    opt = st.session_state.opt_result
+    if not opt:
+        st.image(str(POSTER), width="stretch")
+        return
+    if not opt.get("baseline_simulation"):
+        st.warning("Set **Current counters** in the Scenario Builder to compare today's plan with FlowSim's.")
+        return
+    live_demo(opt, ui.CURRENCIES[st.session_state.currency], run_id=f"run-{st.session_state.live_run}")
+    used = st.session_state.opt_scenario
+    if used["input_mode"] == "synthetic":
+        chips = [f"{used['arrival_rate_per_hour']:g} passengers / hour", f"{used['mean_service_time_minutes']:g} min per check"]
     else:
-        frame = st.session_state.csv_frame
-        rows["Passengers"] = f"{0 if frame is None else len(frame):,} from {st.session_state.csv_name or 'no file'}"
-    rows.update({"Counter range": f"{s['min_counters']} to {s['max_counters']}",
-                 "Current counters": str(s.get("current_counters") or "not set"),
-                 "Counter cost": f"{ui.money(s['counter_cost_per_hour'])} / hour",
-                 "Waiting cost": f"{ui.money(s['waiting_cost_per_passenger_hour'])} / customer-hour",
-                 "SLA": f"wait <= {s['sla_wait_minutes']:g} min, penalty {ui.money(s['sla_penalty_per_passenger'])}"})
-    st.dataframe(pd.DataFrame(rows.items(), columns=["", "value"]), hide_index=True, width="stretch")
-    st.caption("Educational decision-support prototype. Recommendations are minimum-cost under the stated "
-               "assumptions and cost weights; they are not validated for a real facility without calibration.")
+        chips = [f"{len(opt['recommended_simulation']['service_records']):,} passengers from CSV"]
+    chips += [f"Lane {ui.money(used['counter_cost_per_hour'])} / hour", f"Target wait {used['sla_wait_minutes']:g} min"]
+    ui.chips(chips)
+    illustrative_badge()
 
 
 def page_builder() -> None:
@@ -253,10 +239,9 @@ def page_simulation() -> None:
     default = int(s.get("current_counters") or s["min_counters"])
     if st.session_state.opt_result:
         default = int(st.session_state.opt_result["best_counter_count"])
-    c1, c2 = st.columns([1, 3])
+    c1, c2, _ = st.columns([1, 1, 3], vertical_alignment="bottom")
     counters = c1.number_input("Counters to staff", 1, MAX_COUNTERS, default)
-    c2.write("")
-    if c2.button("Run simulation", type="primary"):
+    if c2.button("Run simulation", type="primary", width="stretch"):
         run_simulation(int(counters))
     sim = st.session_state.sim_result
     if not sim:
@@ -414,10 +399,10 @@ def page_export() -> None:
     st.title("Experiments & Export")
     s = st.session_state.scenario
     st.subheader("Rerun")
-    c = st.columns([1, 1, 2])
+    c = st.columns([1, 1, 2], vertical_alignment="bottom")
     if s["input_mode"] == "synthetic":
         new_seed = c[0].number_input("Seed for rerun", 0, 2**53 - 1, (int(s["seed"]) + 1) % 2**53)
-        if c[1].button("Optimize with this seed", type="primary"):
+        if c[1].button("Optimize with this seed", type="primary", width="stretch"):
             run_optimization({**s, "seed": int(new_seed)})
     else:
         st.caption("Reruns with a different seed apply to synthetic mode; CSV data is deterministic.")
@@ -427,15 +412,15 @@ def page_export() -> None:
     d = st.columns(4)
     if opt:
         d[0].download_button("Optimization results (CSV)", pd.DataFrame(opt["results_by_counter_count"]).to_csv(index=False),
-                             "optimization_results.csv", "text/csv")
+                             "optimization_results.csv", "text/csv", width="stretch", icon=":material/download:")
         d[1].download_button("Optimization result (JSON)", json.dumps(opt, indent=2), "optimization_result.json",
-                             "application/json")
+                             "application/json", width="stretch", icon=":material/download:")
     if sim:
         d[2].download_button("Simulation result (JSON)", json.dumps(sim, indent=2), "simulation_result.json",
-                             "application/json")
+                             "application/json", width="stretch", icon=":material/download:")
     passengers = current_passengers() if s["input_mode"] == "csv" else None
     d[3].download_button("Scenario input (JSON)", json.dumps(build_document(s, passengers), indent=2), "scenario.json",
-                         "application/json")
+                         "application/json", width="stretch", icon=":material/download:")
     if not opt and not sim:
         st.info("Run a simulation or optimization to enable result downloads.")
 
@@ -455,21 +440,17 @@ def page_export() -> None:
 # ---------------------------------------------------------------- layout
 
 with st.sidebar:
-    st.markdown("### FlowSim")
-    st.caption("Queue simulation and staffing optimization")
+    st.markdown("<div class='fs-brand'>FLOW<span>SIM</span></div>", unsafe_allow_html=True)
     page = st.radio("Navigate", PAGES, label_visibility="collapsed")
     st.divider()
-    if st.button("Load sample airport scenario", key="sidebar_sample", width="stretch"):
-        ui.load_sample()
-        st.rerun()
     if client.available():
         try:
-            st.caption(f"Engine: `{client.version()}`")
+            st.caption(f"Engine `{client.version()}`")
         except FlowSimError as err:
             st.error(str(err))
     else:
         st.error("C++ engine not built. Run `./scripts/build.sh` and reload.")
 
-PAGE_FUNCS = {"Overview": page_overview, "Scenario Builder": page_builder, "Simulation": page_simulation,
+PAGE_FUNCS = {"Live demo": page_live, "Scenario Builder": page_builder, "Simulation": page_simulation,
               "Optimize Staffing": page_optimize, "Experiments & Export": page_export}
 PAGE_FUNCS[page]()

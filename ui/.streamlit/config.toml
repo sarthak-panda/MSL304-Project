@@ -1,14 +1,53 @@
 [theme]
-base = "light"
-primaryColor = "#1F4E79"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F3F5F8"
-textColor = "#1C2430"
-font = "sans serif"
+base = "dark"
+primaryColor = "#FFD23F"
+backgroundColor = "#111417"
+secondaryBackgroundColor = "#1A1F24"
+textColor = "#E9ECEF"
+borderColor = "#2A3036"
+baseRadius = "4px"
+font = "Barlow, sans-serif"
+headingFont = "'Barlow Condensed', sans-serif"
+codeFont = "monospace"
+chartCategoricalColors = ["#FF8A3D", "#3FCF8E", "#5AA9E6", "#EF5B4C", "#FFD23F", "#B48EAD"]
+
+[[theme.fontFaces]]
+family = "Barlow"
+url = "app/static/fonts/barlow-400.woff2"
+weight = 400
+
+[[theme.fontFaces]]
+family = "Barlow"
+url = "app/static/fonts/barlow-500.woff2"
+weight = 500
+
+[[theme.fontFaces]]
+family = "Barlow"
+url = "app/static/fonts/barlow-600.woff2"
+weight = 600
+
+[[theme.fontFaces]]
+family = "Barlow Condensed"
+url = "app/static/fonts/barlowcond-500.woff2"
+weight = 500
+
+[[theme.fontFaces]]
+family = "Barlow Condensed"
+url = "app/static/fonts/barlowcond-600.woff2"
+weight = 600
+
+[[theme.fontFaces]]
+family = "Barlow Condensed"
+url = "app/static/fonts/barlowcond-700.woff2"
+weight = 700
+
+[theme.sidebar]
+backgroundColor = "#0C0E10"
 
 [server]
 headless = true
 runOnSave = false
+enableStaticServing = true
 
 [browser]
 gatherUsageStats = false

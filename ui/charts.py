@@ -4,11 +4,11 @@ from __future__ import annotations
 import pandas as pd
 import plotly.express as px
 
-QUEUE = "#D9822B"
-SERVICE = "#1F4E79"
-IDLE = "#B8C2CC"
-ALERT = "#C0392B"
-OK = "#2E8B57"
+QUEUE = "#FF8A3D"
+SERVICE = "#5AA9E6"
+IDLE = "#6B7682"
+ALERT = "#EF5B4C"
+OK = "#3FCF8E"
 COST_COLORS = {"Staffing cost": SERVICE, "Waiting cost": QUEUE, "SLA penalty": ALERT}
 
 _LAYOUT = dict(margin=dict(l=10, r=10, t=40, b=10), legend_title_text="", hovermode="x unified")
@@ -46,7 +46,7 @@ def compare_queue_chart(sims: dict[str, dict]):
     df = pd.concat(frames, ignore_index=True)
     fig = px.line(df, x="time_min", y="queue_length", color="plan", line_shape="hv",
                   title="Queue length: current vs recommended (replication 0)",
-                  color_discrete_sequence=[IDLE, SERVICE],
+                  color_discrete_sequence=[QUEUE, OK],
                   labels={"time_min": "Time since start (min)", "queue_length": "Customers waiting"})
     fig.update_layout(**_LAYOUT)
     return fig
@@ -68,7 +68,7 @@ def gantt_chart(sim: dict, sla_wait: float, max_rows: int = 3000):
                              "Counter": False},
                  title="Service timeline by counter",
                  labels={"service_time_min": "Time since start (min)"})
-    fig.update_traces(marker_line_width=0.5, marker_line_color="white")
+    fig.update_traces(marker_line_width=0.5, marker_line_color="#111417")
     fig.update_layout(margin=_LAYOUT["margin"], legend_title_text="", bargap=0.25)
     fig.update_yaxes(title=None)
     return fig
@@ -103,7 +103,7 @@ def cost_breakdown_chart(results: pd.DataFrame, best: int, baseline: int | None)
     fig.add_vline(x=best, line_dash="dash", line_color=OK, annotation_text=f"Recommended: {best}",
                   annotation_position="top")
     if baseline is not None and baseline != best and baseline in set(results["counter_count"]):
-        fig.add_vline(x=baseline, line_dash="dot", line_color="#555", annotation_text=f"Current: {baseline}",
+        fig.add_vline(x=baseline, line_dash="dot", line_color="#8A949E", annotation_text=f"Current: {baseline}",
                       annotation_position="bottom")
     fig.update_layout(margin=_LAYOUT["margin"], legend_title_text="")
     return fig

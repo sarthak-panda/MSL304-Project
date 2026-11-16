@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>FlowSim live</title>
+<link rel="stylesheet" href="./demo.css" />
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+<div id="app">
+  <div class="bar">
+    <div class="clock"><span id="clock">0:00</span><small>elapsed</small></div>
+    <div class="controls">
+      <button id="play" class="btn primary" type="button">Pause</button>
+      <button id="replay" class="btn" type="button">Replay</button>
+      <div class="speed" id="speed">
+        <button type="button" data-speed="1">1×</button>
+        <button type="button" data-speed="2" class="on">2×</button>
+        <button type="button" data-speed="4">4×</button>
+        <button type="button" data-speed="8">8×</button>
+      </div>
+    </div>
+    <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Timeline" />
+    <div class="legend">
+      <span><i style="background:#3fcf8e"></i>&lt; <b class="slaHalf">5</b> min</span>
+      <span><i style="background:#f2b233"></i><b class="slaHalf">5</b> to <b id="sla1">10</b></span>
+      <span><i style="background:#ef5b4c"></i>over <b id="sla2">10</b> min</span>
+    </div>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="gl"></canvas>
+    <div class="half left">
+      <div class="tag today"><small>Today</small><b><span id="lanesL">4</span> lanes</b></div>
+      <div class="board" id="boardL"></div>
+    </div>
+    <div class="half right">
+      <div class="tag plan"><small>FlowSim plan</small><b><span id="lanesR">6</span> lanes</b></div>
+      <div class="board" id="boardR"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="loading" id="loading">Loading hall</div>
+    <div class="end hidden" id="end"></div>
+  </div>
+  <div class="charts">
+    <div class="chart"><h3>People in line</h3><canvas id="chartQ"></canvas></div>
+    <div class="chart"><h3>Cost so far</h3><canvas id="chartC"></canvas></div>
+  </div>
+</div>
+<script type="module" src="./demo.js"></script>
+</body>
+</html>
