@@ -1,0 +1,108 @@
+% Shared colours, plot styles and TikZ diagrams for slides.tex and report.tex.
+\definecolor{ovgreen}{HTML}{138A07}
+\definecolor{ovdark}{HTML}{0B5A04}
+\definecolor{ovlight}{HTML}{E8F4E6}
+\definecolor{ink}{HTML}{222222}
+\definecolor{mute}{HTML}{6B6B6B}
+\definecolor{today}{HTML}{E07B2A}
+\definecolor{wait}{HTML}{7FBF6E}
+\definecolor{late}{HTML}{C0392B}
+\pgfplotsset{compat=1.18,
+  fs axis/.style={axis lines=left, tick style={mute}, every axis label/.style={font=\footnotesize, color=mute},
+    tick label style={font=\scriptsize, color=ink}, legend style={draw=none, font=\scriptsize, fill=none},
+    axis line style={mute}, ymajorgrids, grid style={black!8}},
+}
+\tikzset{
+  box/.style={draw=ovgreen, line width=.8pt, rounded corners=3pt, align=center, inner sep=6pt, fill=white},
+  gbox/.style={box, fill=ovlight},
+  arr/.style={-{Stealth[length=5pt]}, line width=.9pt, color=ovdark},
+  pax/.style={circle, fill=today, minimum size=7pt, inner sep=0pt},
+  lane/.style={draw=ovgreen, fill=ovlight, line width=.8pt, minimum width=1.25cm, minimum height=.55cm, rounded corners=2pt, font=\scriptsize},
+}
+
+% Single queue feeding c identical counters.
+\newcommand{\queuediagram}{%
+\begin{tikzpicture}[font=\small]
+  \node[align=center, color=mute, font=\scriptsize] (src) at (0,0) {Poisson arrivals\\rate $\lambda$};
+  \foreach \i in {0,...,5} \node[pax] at (2.1+\i*0.32, 0) {};
+  \draw[ovgreen, line width=.8pt] (1.85,-.28) -- (3.95,-.28) (1.85,.28) -- (3.95,.28);
+  \node[font=\scriptsize, color=mute] at (2.75,-.6) {one shared FIFO queue};
+  \draw[arr] (src.east) -- (1.8,0);
+  \foreach \k/\y in {1/1.35, 2/.6, 3/-.15, c/-1.35} {
+    \node[lane] (l\k) at (5.6,\y) {counter $\k$};
+    \draw[arr] (4.0,0) -- (l\k.west);
+    \draw[arr] (l\k.east) -- (7.4,0);
+  }
+  \node[color=mute] at (5.6,-.72) {$\vdots$};
+  \node[align=center, color=mute, font=\scriptsize] at (8.3,0) {served,\\leaves};
+  \node[font=\scriptsize, color=mute] at (5.6,1.9) {service time $S_i$, mean $1/\mu$};
+\end{tikzpicture}}
+
+% Event loop of the simulator.
+\newcommand{\eventdiagram}{%
+\begin{tikzpicture}[font=\footnotesize, node distance=6mm]
+  \node[gbox] (pop) {pop earliest event\\\scriptsize(time, type, seq)};
+  \node[box, below left=7mm and -4mm of pop] (cmp) {\textbf{Completion}\\free counter, record end};
+  \node[box, below right=7mm and -4mm of pop] (arv) {\textbf{Arrival}\\join queue};
+  \node[box, below=7mm of $(cmp)!.5!(arv)$] (start) {idle counter and queue not empty?\\start service on lowest idle counter,\\schedule its completion};
+  \draw[arr] (pop) -- (cmp); \draw[arr] (pop) -- (arv);
+  \draw[arr] (cmp) -- (start); \draw[arr] (arv) -- (start);
+  \draw[arr] (start.east) -- ++(1.1,0) |- (pop.east);
+  \node[font=\scriptsize, color=mute, align=left, left=3mm of pop] {completions before\\arrivals at equal times};
+\end{tikzpicture}}
+
+% Engine and UI layers.
+\newcommand{\archdiagram}{%
+\begin{tikzpicture}[font=\footnotesize]
+  \node[box, minimum width=3.2cm, minimum height=1.25cm] (ui) at (0,0) {\textbf{Streamlit UI}\\\scriptsize Python, 5 pages};
+  \node[box, minimum width=3.2cm, minimum height=1.25cm] (live) at (0,-1.9) {\textbf{Live demo}\\\scriptsize Three.js component};
+  \node[box, minimum width=3.0cm, minimum height=1.25cm] (cli) at (4.6,0) {\textbf{flowsim\_cli}\\\scriptsize JSON in, JSON out};
+  \node[gbox, minimum width=4.2cm, minimum height=3.15cm, anchor=north west] (core) at (6.9,.62) {};
+  \node[anchor=north, font=\footnotesize\bfseries] at (core.north) {flowsim\_core (C++20)};
+  \node[font=\scriptsize, align=left, anchor=north west] at ([shift={(2mm,-6mm)}]core.north west)
+    {generator \quad csv\_loader\\simulator \quad metrics\\optimizer (std::jthread pool)\\json\_io \quad validation};
+  \draw[arr] (ui.east) -- node[above, font=\scriptsize, color=mute] {subprocess} (cli.west);
+  \draw[arr] (cli.east) -- (cli.east -| core.west);
+  \draw[arr] (ui) -- node[right, font=\scriptsize, color=mute] {engine records} (live);
+\end{tikzpicture}}
+
+% Stacked cost per staffing level.
+\newcommand{\costchart}[2]{%
+\begin{tikzpicture}
+\begin{axis}[fs axis, width=#1, height=#2, ybar stacked, bar width=14pt, ymin=0, ymax=16500,
+    xlabel={counters $c$}, ylabel={mean cost per run (INR)}, xtick={3,...,8}, xmin=2.4, xmax=8.6,
+    restrict x to domain=3:8, scaled y ticks=false, yticklabel={\pgfmathprintnumber[1000 sep={,}]{\tick}},
+    legend columns=3, legend style={at={(0.5,1.02)}, anchor=south}, area legend]
+  \addplot[fill=ovgreen, draw=none] table[x=c, y=staffing, col sep=comma] {data/per_counter.csv};
+  \addplot[fill=wait, draw=none] table[x=c, y=waiting, col sep=comma] {data/per_counter.csv};
+  \addplot[fill=late, draw=none] table[x=c, y=sla, col sep=comma] {data/per_counter.csv};
+  \legend{staffing, waiting, SLA penalty}
+\end{axis}
+\begin{axis}[width=#1, height=#2, ymin=0, ymax=16500, xmin=2.4, xmax=8.6, hide axis]
+  \addplot[only marks, mark=*, mark size=1.6pt, ink] table[x=c, y=total, col sep=comma, restrict x to domain=3:8] {data/per_counter.csv};
+  \node[font=\scriptsize\bfseries, color=ovdark] at (axis cs:6,8300) {best};
+  \node[font=\scriptsize, color=today] at (axis cs:4,11800) {today};
+\end{axis}
+\end{tikzpicture}}
+
+% People waiting over time in the representative run.
+\newcommand{\queuechart}[2]{%
+\begin{tikzpicture}
+\begin{axis}[fs axis, width=#1, height=#2, xmin=0, xmax=295, ymin=0, xlabel={minutes since 06:00},
+    ylabel={people in line}, xtick={0,60,...,300}, legend style={at={(0.02,0.98)}, anchor=north west}]
+  \addplot[const plot, today, line width=1pt] table[x=t, y=q, col sep=comma] {data/queue_today.csv};
+  \addplot[const plot, ovgreen, line width=1pt] table[x=t, y=q, col sep=comma] {data/queue_plan.csv};
+  \legend{{today, 4 lanes},{FlowSim, 6 lanes}}
+\end{axis}
+\end{tikzpicture}}
+
+% Best counter count against arrival rate.
+\newcommand{\sensitivitychart}[2]{%
+\begin{tikzpicture}
+\begin{axis}[fs axis, width=#1, height=#2, xlabel={arrivals per hour $\lambda$}, ylabel={best counters $c^\ast$},
+    ymin=0, ymax=8, xtick={20,28,...,64}, ytick={0,...,8}, axis y line*=left]
+  \addplot[const plot mark mid, ovgreen, line width=1.1pt, mark=*, mark size=1.5pt] table[x=rate, y=best, col sep=comma] {data/sensitivity.csv};
+  \addplot[dashed, mute, domain=20:64] {x/60*5.5};
+  \node[font=\scriptsize, color=mute, rotate=24] at (axis cs:56,4.4) {offered load $\lambda/\mu$};
+\end{axis}
+\end{tikzpicture}}
