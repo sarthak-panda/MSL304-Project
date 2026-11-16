@@ -26,14 +26,13 @@ def _compact(sim: dict, label: str) -> dict[str, Any]:
     }
 
 
-def live_demo(opt: dict, currency: str, run_id: str, key: str = "live_demo") -> None:
-    """Renders the animated comparison of the baseline and recommended representative runs."""
+def payload(opt: dict, currency: str) -> dict[str, Any]:
+    """Component arguments for one optimizer result: baseline run, recommended run and cost settings."""
     s = opt["scenario"]
-    _component(
-        run_id=run_id,
-        today=_compact(opt["baseline_simulation"], "Today"),
-        plan=_compact(opt["recommended_simulation"], "FlowSim plan"),
-        meta={
+    return {
+        "today": _compact(opt["baseline_simulation"], "Today"),
+        "plan": _compact(opt["recommended_simulation"], "FlowSim plan"),
+        "meta": {
             "currency": currency,
             "counter_cost_per_hour": s["counter_cost_per_hour"],
             "waiting_cost_per_passenger_hour": s["waiting_cost_per_passenger_hour"],
@@ -43,6 +42,13 @@ def live_demo(opt: dict, currency: str, run_id: str, key: str = "live_demo") -> 
             "mean_savings": opt["objective_savings"],
             "mean_savings_percent": opt["objective_savings_percent"],
         },
-        key=key,
-        default=None,
-    )
+    }
+
+
+def live_demo(opt: dict | None, currency: str, run_id: str, key: str = "live_demo") -> None:
+    """Renders the animated comparison of the baseline and recommended representative runs.
+
+    With ``opt=None`` the frame stays collapsed and only preloads the 3D models.
+    """
+    args = payload(opt, currency) if opt is not None else {"today": None, "plan": None, "meta": None}
+    _component(run_id=run_id, **args, key=key, default=None)

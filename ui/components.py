@@ -39,6 +39,8 @@ def init_state() -> None:
         "currency": "INR (₹)",
         "form_version": 0,
         "live_run": 0,
+        "live_busy": None,
+        "live_errors": [],
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -63,16 +65,43 @@ def inject_css() -> None:
     [data-testid="stMetricLabel"] p { text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; color: #8a949e; }
     button[kind="primary"], button[kind="primaryFormSubmit"] { color: #111417 !important; font-weight: 600; }
     button[kind="primary"] p, button[kind="primaryFormSubmit"] p { color: #111417 !important; }
+    button[kind="primary"]:disabled { background: #ffd23f !important; border-color: #ffd23f !important; opacity: .65; }
     .stButton button, .stDownloadButton button, .stFormSubmitButton button { min-height: 2.6rem; }
-    .block-container { padding-top: 2.2rem; }
+    .block-container { padding-top: 3.6rem; padding-bottom: 1.5rem; }
+    .stElementContainer:has(> div > iframe[height="0"]) { margin-bottom: -1rem; }
     h1 { font-weight: 700; letter-spacing: .01em; }
     .fs-brand { font: 700 1.9rem 'Barlow Condensed', sans-serif; letter-spacing: .06em; color: #e9ecef; margin: -.4rem 0 .6rem; }
     .fs-brand span { color: #ffd23f; }
     .fs-kicker { font: 500 .8rem 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .14em; color: #8a949e; }
-    .fs-title { font: 700 1.75rem/1.1 'Barlow Condensed', sans-serif; color: #e9ecef; white-space: nowrap; }
+    .fs-title { font: 700 1.75rem/1.1 'Barlow Condensed', sans-serif; color: #e9ecef; }
+    .fs-h2 { font: 700 1.6rem/1.15 'Barlow Condensed', sans-serif; color: #e9ecef; margin: .15rem 0 .5rem; }
+    .fs-lead { color: #b9c1c8; font-size: 1.02rem; line-height: 1.5; max-width: 38rem; }
+    .fs-legend { color: #8a949e; font-size: .82rem; text-align: center; }
+    .fs-legend b { color: #d4d9de; font-weight: 600; }
+    .fs-step { display: inline-grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 50%;
+        background: #ffd23f; color: #111417; font: 700 .85rem 'Barlow Condensed', sans-serif; margin-right: .35rem; }
+    .fs-sub { color: #8a949e; font-size: .86rem; padding-left: 1.85rem; }
+    .fs-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+        margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #2a3036; color: #8a949e; font-size: .9rem; }
+    .fs-footer a.fs-me { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+    .fs-footer a.fs-me:hover b { color: #ffd23f; }
+    .fs-footer img { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #3a4048; object-fit: cover; }
+    .fs-footer b { color: #e9ecef; font-weight: 600; }
+    .fs-footer .fs-course { font: 600 .95rem 'Barlow Condensed', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+    .fs-footer .fs-course span { color: #ffd23f; }
     .fs-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: .4rem 0; }
     .fs-chips span { border: 1px solid #2a3036; border-radius: 4px; padding: 3px 10px; font-size: .85rem; color: #b9c1c8; }
     </style>""")
+
+
+def footer() -> None:
+    st.markdown(
+        "<div class='fs-footer'>"
+        "<a class='fs-me' href='https://github.com/sarthak-panda' target='_blank' rel='noopener'>"
+        "<img src='app/static/avatar.jpg' alt='sarthak-panda'/>"
+        "<span><b>sarthak-panda</b> &nbsp;2022CS51217</span></a>"
+        "<span class='fs-course'><span>MSL304</span> Project</span></div>",
+        unsafe_allow_html=True)
 
 
 def chips(items: list[str]) -> None:

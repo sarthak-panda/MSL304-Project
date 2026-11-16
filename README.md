@@ -46,6 +46,10 @@ optimum, and the bundled sample parameters are illustrative, not measured airpor
 
 All screenshots are from the running app with the sample scenario.
 
+| Landing page | GitHub Pages site |
+| --- | --- |
+| ![Landing page](docs/screenshots/landing.png) | ![GitHub Pages site](docs/screenshots/pages_site.png) |
+
 | Live demo result | Scenario Builder |
 | --- | --- |
 | ![Live demo result](docs/screenshots/live_demo_result.png) | ![Scenario Builder](docs/screenshots/scenario_builder.png) |
@@ -186,6 +190,30 @@ cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DFLOWSIM_SANITIZE=thread && c
 ./build-tsan/tests/flowsim_tests
 ```
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+
+- **C++ engine:** Release, AddressSanitizer + UBSan and ThreadSanitizer builds, each running `ctest`.
+- **Integration:** builds the engine, runs `node --check` on the live demo script, runs the full pytest suite (engine
+  client, CLI contract, every Streamlit page headlessly, footer and landing checks, Pages build) and uploads the built
+  Pages site as an artifact.
+
+## GitHub Pages
+
+GitHub Pages only serves static files, so it cannot run Streamlit or the C++ engine. Instead
+`scripts/build_pages.py` runs the engine on three preset scenarios (morning rush, quiet midday, holiday peak) and
+bundles their results with the same live replay into `site/`. `.github/workflows/pages.yml` builds and deploys it on
+every push to `main`.
+
+```bash
+python scripts/build_pages.py            # writes site/
+python -m http.server 8000 --directory site
+```
+
+To turn it on once: the repository must be public (or on a plan that allows Pages for private repositories), then set
+**Settings > Pages > Source** to **GitHub Actions** and re-run the workflow. Custom scenarios still need the local app.
+
 ## Benchmark
 
 ```bash
@@ -213,11 +241,13 @@ tests/               C++ unit tests (custom minimal framework) and CTest registr
 tests/python/        pytest suite for the client, CLI contract and Streamlit app
 ui/                  Streamlit app, engine client, scenario helpers, charts, theme
 ui/live_demo/        live demo component (Three.js scene, 3D models, live charts)
-ui/static/           fonts and the live demo poster image
+ui/static/           fonts, footer avatar and the live demo poster image
+web/                 GitHub Pages landing page (hosts the live replay)
+.github/workflows/   CI (engine, sanitizers, integration tests) and Pages deployment
 config/              example scenario JSON
 data/                synthetic sample customer CSV
 docs/                model, architecture, demo script and screenshots
-scripts/             build.sh and run_demo.sh
+scripts/             build.sh, run_demo.sh and build_pages.py
 seed_prompt.md       engineering specification
 ```
 
@@ -244,6 +274,9 @@ replications.
   [Mini Characters](https://kenney.nl/assets/mini-characters), [Conveyor Kit](https://kenney.nl/assets/conveyor-kit)
   and [Mini Market](https://kenney.nl/assets/mini-market) packs (CC0). The fonts are Barlow and Barlow Condensed
   (SIL Open Font License). Licenses are next to the files.
+- The 3D models start loading as soon as the landing page opens, so playback starts right after the engine returns.
+  The run buttons show a spinner and stay disabled while the engine works.
+- Only the idle and walk animations are kept in the character models, which halves their size.
 - A browser with WebGL is required.
 
 ## Limitations
