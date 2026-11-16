@@ -226,7 +226,8 @@ function drawChart(cv, lines, yMax, t, fmt, step) {
     ctx.textAlign = "right"; ctx.fillText(fmt(v, true), L - 6, y + 4);
   }
   ctx.textAlign = "center";
-  for (let m = 0; m <= tEnd; m += 60) ctx.fillText(fmtClock(m), X(m), h - 6);
+  const tick = 60 * Math.max(1, Math.ceil(36 / (X(60) - X(0))));
+  for (let m = 0; m <= tEnd; m += tick) ctx.fillText(fmtClock(m), X(m), h - 6);
   for (const ln of lines) {
     ctx.strokeStyle = ln.color; ctx.lineWidth = 2.5; ctx.beginPath();
     let last = 0, lastX = 0, started = false;
