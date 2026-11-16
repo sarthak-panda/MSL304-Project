@@ -297,7 +297,7 @@ function fitCamera(h, aspect) {
 
 let renderer;
 function frame(now) {
-  const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
+  const dt = Math.min(0.25, (now - lastFrame) / 1000); lastFrame = now;
   if (data && assets && halls.length === 2) {
     let snap = false;
     if (playing && !scrubbing) { simT = Math.min(tEnd, simT + dt * speed); if (simT >= tEnd) { playing = false; $("play").textContent = "Play"; } }
