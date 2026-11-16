@@ -345,7 +345,7 @@ function reset() {
   simT = 0; playing = true; $("play").textContent = "Pause";
   $("lanesL").textContent = data.today.counters; $("lanesR").textContent = data.plan.counters;
   $("sla1").textContent = $("sla2").textContent = data.meta.sla_wait_minutes;
-  document.querySelectorAll(".slaHalf").forEach((el) => (el.textContent = Number((data.meta.sla_wait_minutes / 2).toFixed(1))));
+  document.querySelectorAll(".slaHalf").forEach((el) => (el.textContent = Number((data.meta.sla_wait_minutes / 2).toFixed(4))));
   indexSim(data.today); indexSim(data.plan);
   prepareCharts(); showEnd(false);
 }
