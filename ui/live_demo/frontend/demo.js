@@ -291,6 +291,7 @@ function fitCamera(h, aspect) {
   const tilt = THREE.MathUtils.degToRad(40);
   cam.position.set(0, d * Math.sin(tilt), midZ + d * Math.cos(tilt));
   cam.lookAt(0, 0, midZ - 0.35);
+  cam.far = Math.max(100, d * 2 + span);
   cam.updateProjectionMatrix();
 }
 
