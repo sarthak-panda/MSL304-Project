@@ -270,7 +270,7 @@ function showEnd(show) {
     <tr><td>Average wait</td><td class="today">${a.mean_wait_min.toFixed(1)} min</td><td class="plan">${b.mean_wait_min.toFixed(1)} min</td></tr>
     <tr><td>Longest line</td><td class="today">${a.max_queue_length}</td><td class="plan">${b.max_queue_length}</td></tr>
     <tr><td>Total cost</td><td class="today">${money(a.total_objective_cost)}</td><td class="plan">${money(b.total_objective_cost)}</td></tr></table>
-    <p>Over ${m.replications} simulated runs the plan costs ${money(m.mean_savings)} less on average (${m.mean_savings_percent.toFixed(0)}%).</p>`;
+    <p>Over ${m.replications} simulated runs the plan costs ${money(m.mean_savings)} less on average${m.mean_savings_percent == null ? "" : ` (${m.mean_savings_percent.toFixed(0)}%)`}.</p>`;
   el.classList.remove("hidden");
 }
 
