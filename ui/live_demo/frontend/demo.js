@@ -322,7 +322,7 @@ function reset() {
   const lanes = Math.max(data.today.counters, data.plan.counters);
   const maxQ = Math.max(data.today.metrics.max_queue_length, data.plan.metrics.max_queue_length);
   halls.push(buildHall(data.today, lanes, maxQ), buildHall(data.plan, lanes, maxQ));
-  tEnd = Math.max(data.today.metrics.finish_time_min, data.plan.metrics.finish_time_min);
+  tEnd = Math.max(1, data.today.metrics.finish_time_min, data.plan.metrics.finish_time_min);
   simT = 0; playing = true; $("play").textContent = "Pause";
   $("lanesL").textContent = data.today.counters; $("lanesR").textContent = data.plan.counters;
   $("sla1").textContent = $("sla2").textContent = data.meta.sla_wait_minutes;
