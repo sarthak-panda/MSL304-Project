@@ -245,12 +245,12 @@ let qLines, cLines, qMax, cMax;
 function prepareCharts() {
   const sims = [data.today, data.plan];
   qLines = sims.map((s, k) => ({ pts: series(s), color: k ? C.plan : C.today }));
-  qMax = Math.max(4, ...qLines.flatMap((l) => l.pts.map((p) => p[1]))) * 1.1;
+  qMax = qLines.reduce((mx, l) => l.pts.reduce((m2, p) => Math.max(m2, p[1]), mx), 4) * 1.1;
   cLines = sims.map((s, k) => {
     const pts = []; for (let j = 0; j <= 240; j++) { const t = (tEnd * j) / 240; pts.push([t, costAt(s, t)]); }
     return { pts, color: k ? C.plan : C.today };
   });
-  cMax = Math.max(...cLines.map((l) => l.pts[l.pts.length - 1][1])) * 1.1;
+  cMax = Math.max(1, ...cLines.map((l) => l.pts[l.pts.length - 1][1])) * 1.1;
 }
 
 // ---------- HUD ----------
