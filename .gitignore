@@ -7,3 +7,13 @@ ui/.flowsim_runs/
 *.swp
 .DS_Store
 site/
+
+# LaTeX build files
+docs/latex/*.aux
+docs/latex/*.fdb_latexmk
+docs/latex/*.fls
+docs/latex/*.log
+docs/latex/*.nav
+docs/latex/*.out
+docs/latex/*.snm
+docs/latex/*.toc
