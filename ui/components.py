@@ -89,6 +89,8 @@ def inject_css() -> None:
     .fs-footer b { color: #e9ecef; font-weight: 600; }
     .fs-footer .fs-course { font: 600 .95rem 'Barlow Condensed', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
     .fs-footer .fs-course span { color: #ffd23f; }
+    .fs-group { font: 600 .82rem 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .14em;
+        color: #ffd23f; margin-bottom: .2rem; }
     .fs-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: .4rem 0; }
     .fs-chips span { border: 1px solid #2a3036; border-radius: 4px; padding: 3px 10px; font-size: .85rem; color: #b9c1c8; }
     </style>""")

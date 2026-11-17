@@ -203,7 +203,7 @@ def page_builder() -> None:
     st.title("Scenario Builder")
     illustrative_badge()
     s = st.session_state.scenario
-    top = st.columns([1, 1, 2])
+    top = st.columns([1, 1, 2], vertical_alignment="bottom")
     if top[0].button("Load sample airport scenario", width="stretch"):
         ui.load_sample()
         st.rerun()
@@ -222,8 +222,9 @@ def page_builder() -> None:
         st.subheader("Customer data")
         st.caption("Required columns: `passenger_id, arrival_time_min, service_time_min`. Rows may be in any order. "
                    "A fixed dataset is simulated once, so replication controls do not apply.")
-        c1, c2 = st.columns([2, 1])
-        c1.file_uploader("Upload CSV", type=["csv"], key="csv_upload", on_change=on_csv_upload)
+        c1, c2 = st.columns([2, 1], vertical_alignment="center")
+        c1.file_uploader("Upload CSV", type=["csv"], key="csv_upload", on_change=on_csv_upload,
+                         label_visibility="collapsed")
         if c2.button("Use sample CSV (synthetic data)", width="stretch"):
             frame, errors = parse_passenger_csv(SAMPLE_CSV.read_bytes())
             st.session_state.csv_frame, st.session_state.csv_errors = frame, errors
@@ -240,35 +241,62 @@ def page_builder() -> None:
                 st.success(f"{len(frame):,} rows loaded from {st.session_state.csv_name}.")
             st.dataframe(frame.head(10), hide_index=True, width="stretch")
 
+    synthetic = mode == "synthetic"
+    sym = ui.CURRENCIES[st.session_state.currency] or "units"
     with st.form(f"scenario_form_{st.session_state.form_version}"):
         st.subheader("Scenario settings")
         name = st.text_input("Scenario name", s["name"])
-        if mode == "synthetic":
-            c = st.columns(4)
-            window = c[0].number_input("Arrival window (minutes)", 0.0, 10080.0, float(s["arrival_window_minutes"]), 10.0)
-            rate = c[1].number_input("Arrival rate (customers / hour)", 0.01, 1e6, float(s["arrival_rate_per_hour"]), 1.0)
-            svc = c[2].number_input("Mean service time (minutes / customer)", 0.01, 1440.0,
-                                    float(s["mean_service_time_minutes"]), 0.5)
-            dist = c[3].selectbox("Service-time distribution", ["exponential", "deterministic"],
-                                  index=0 if s["service_time_distribution"] == "exponential" else 1)
-        c = st.columns(3)
-        lo = c[0].number_input("Minimum counters", 1, MAX_COUNTERS, int(s["min_counters"]))
-        hi = c[1].number_input("Maximum counters", 1, MAX_COUNTERS, int(s["max_counters"]))
-        cur = c[2].number_input("Current counters (baseline, 0 = none)", 0, MAX_COUNTERS, int(s.get("current_counters") or 0))
-        c = st.columns(4)
-        sym = ui.CURRENCIES[st.session_state.currency] or "units"
-        counter_cost = c[0].number_input(f"Counter cost ({sym} / counter-hour)", 0.0, 1e9, float(s["counter_cost_per_hour"]), 10.0)
-        wait_cost = c[1].number_input(f"Waiting cost ({sym} / customer-hour)", 0.0, 1e9,
-                                      float(s["waiting_cost_per_passenger_hour"]), 5.0)
-        sla = c[2].number_input("SLA wait threshold (minutes)", 0.0, 1e9, float(s["sla_wait_minutes"]), 1.0)
-        penalty = c[3].number_input(f"Penalty per SLA breach ({sym})", 0.0, 1e9, float(s["sla_penalty_per_passenger"]), 5.0)
-        c = st.columns(4)
-        synthetic = mode == "synthetic"
-        reps = c[0].number_input("Replications", 1, MAX_REPLICATIONS, int(s["replications"]), disabled=not synthetic,
-                                 help="Independent synthetic datasets (seed, seed+1, ...). Not used for CSV data.")
-        seed = c[1].number_input("Random seed", 0, 2**53 - 1, int(s["seed"]), disabled=not synthetic)
-        parallel = c[2].toggle("Parallel evaluation", bool(s["parallel"]))
-        threads = c[3].number_input("Thread limit", 1, MAX_THREADS, int(s["max_threads"]))
+        left, right = st.columns(2, gap="medium")
+        if synthetic:
+            with left.container(border=True):
+                group("Passengers")
+                c = st.columns(2, vertical_alignment="bottom")
+                window = c[0].number_input("Arrival window (min)", 0.0, 10080.0, float(s["arrival_window_minutes"]),
+                                           10.0, help="How long passengers keep arriving.")
+                rate = c[1].number_input("Arrivals per hour", 0.01, 1e6, float(s["arrival_rate_per_hour"]), 1.0,
+                                         help="Average arrival rate of a Poisson process.")
+                c = st.columns(2, vertical_alignment="bottom")
+                svc = c[0].number_input("Mean service time (min)", 0.01, 1440.0,
+                                        float(s["mean_service_time_minutes"]), 0.5,
+                                        help="Average time a counter spends on one customer.")
+                dist = c[1].selectbox("Service time", ["exponential", "deterministic"],
+                                      index=0 if s["service_time_distribution"] == "exponential" else 1,
+                                      format_func=lambda d: "Random (exponential)" if d == "exponential" else "Fixed")
+                load = s["arrival_rate_per_hour"] * s["mean_service_time_minutes"] / 60.0
+                st.caption(f"Offered load: **{load:.2f}** counters busy on average. Fewer counters cannot keep up.")
+        with (right if synthetic else left).container(border=True):
+            group("Counters")
+            c = st.columns(3, vertical_alignment="bottom")
+            lo = c[0].number_input("Minimum", 1, MAX_COUNTERS, int(s["min_counters"]),
+                                   help="Fewest counters the optimizer will try.")
+            hi = c[1].number_input("Maximum", 1, MAX_COUNTERS, int(s["max_counters"]),
+                                   help="Most counters the optimizer will try.")
+            cur = c[2].number_input("Today", 0, MAX_COUNTERS, int(s.get("current_counters") or 0),
+                                    help="Counters open today, used as the baseline. 0 means no baseline.")
+            st.caption("The optimizer tries every count from minimum to maximum.")
+        left, right = st.columns(2, gap="medium")
+        with left.container(border=True):
+            group("Costs")
+            c = st.columns(2, vertical_alignment="bottom")
+            counter_cost = c[0].number_input(f"Per counter-hour ({sym})", 0.0, 1e9, float(s["counter_cost_per_hour"]),
+                                             10.0, help="Cost of keeping one counter open for one hour.")
+            wait_cost = c[1].number_input(f"Per waiting hour ({sym})", 0.0, 1e9,
+                                          float(s["waiting_cost_per_passenger_hour"]), 5.0,
+                                          help="Value of one customer-hour spent waiting in line.")
+        with right.container(border=True):
+            group("Wait target")
+            c = st.columns(2, vertical_alignment="bottom")
+            sla = c[0].number_input("Target wait (min)", 0.0, 1e9, float(s["sla_wait_minutes"]), 1.0,
+                                    help="SLA threshold. Customers who wait longer count as late.")
+            penalty = c[1].number_input(f"Penalty per late customer ({sym})", 0.0, 1e9,
+                                        float(s["sla_penalty_per_passenger"]), 5.0)
+        with st.expander("Run settings"):
+            c = st.columns(4, vertical_alignment="bottom")
+            reps = c[0].number_input("Replications", 1, MAX_REPLICATIONS, int(s["replications"]), disabled=not synthetic,
+                                     help="Independent synthetic datasets (seed, seed+1, ...). Not used for CSV data.")
+            seed = c[1].number_input("Random seed", 0, 2**53 - 1, int(s["seed"]), disabled=not synthetic)
+            threads = c[2].number_input("Thread limit", 1, MAX_THREADS, int(s["max_threads"]))
+            parallel = c[3].toggle("Parallel evaluation", bool(s["parallel"]))
         if st.form_submit_button("Save scenario", type="primary"):
             new = dict(s)
             new.update({"name": name.strip(), "input_mode": mode, "min_counters": int(lo), "max_counters": int(hi),
@@ -287,10 +315,10 @@ def page_builder() -> None:
                 st.session_state.scenario = new
                 st.session_state.is_sample = new == SAMPLE_SCENARIO
                 st.success("Scenario saved. Run it from the Simulation or Optimize Staffing page.")
-    if mode == "synthetic":
-        load = s["arrival_rate_per_hour"] * s["mean_service_time_minutes"] / 60.0
-        st.caption(f"Offered load = arrival rate x mean service time = {load:.2f} counters busy on average. "
-                   f"Fewer counters than this cannot keep up during the arrival window.")
+
+
+def group(title: str) -> None:
+    st.markdown(f"<div class='fs-group'>{title}</div>", unsafe_allow_html=True)
 
 
 def page_simulation() -> None:

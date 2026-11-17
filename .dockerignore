@@ -1,0 +1,11 @@
+.git
+.github
+.venv
+build*
+site
+web
+docs
+**/__pycache__
+**/.pytest_cache
+ui/.flowsim_runs
+*.pdf

@@ -214,6 +214,29 @@ python -m http.server 8000 --directory site
 To turn it on once: the repository must be public (or on a plan that allows Pages for private repositories), then set
 **Settings > Pages > Source** to **GitHub Actions** and re-run the workflow. Custom scenarios still need the local app.
 
+## Deploy on Render
+
+The repo includes a `Dockerfile` that builds the C++ engine and serves the Streamlit app, plus a `render.yaml` blueprint.
+On Render, create a **Web Service** from this repo and use these settings:
+
+| Field | Value |
+| --- | --- |
+| Language | Docker |
+| Root Directory | leave blank |
+| Dockerfile Path | `./Dockerfile` |
+| Instance Type | Free |
+| Health Check Path | `/_stcore/health` |
+
+No build command, start command, environment variables or secret files are needed. Render sets `PORT` and the
+container listens on it. The free instance sleeps when idle, so the first visit after a pause takes about a minute.
+
+To try the same image locally:
+
+```bash
+docker build -t flowsim .
+docker run -p 8501:8501 flowsim      # then open http://localhost:8501
+```
+
 ## Benchmark
 
 ```bash
